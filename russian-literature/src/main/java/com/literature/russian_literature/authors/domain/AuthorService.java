@@ -3,9 +3,11 @@ package com.literature.russian_literature.authors.domain;
 import com.literature.russian_literature.authors.db.AuthorMapper;
 import com.literature.russian_literature.authors.db.AuthorRepository;
 import com.literature.russian_literature.authors.db.AuthorEntity;
-
 import com.literature.russian_literature.authors.util.AuthorNormalizer;
 import com.literature.russian_literature.authors.util.AuthorValidator;
+import com.literature.russian_literature.books.db.BookRepository;
+import com.literature.russian_literature.cloudinary.CloudinaryService;
+
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
@@ -21,17 +23,22 @@ public class AuthorService {
 
     private final AuthorRepository repository;
     private final AuthorMapper mapper;
-    private final AuthorValidator authorValidator;
+    private final AuthorValidator validator;
     private final AuthorNormalizer normalizer;
+    private final BookRepository bookRepository;
+    private final CloudinaryService cloudinaryService;
     //private final BookService bookService;
 
     @Autowired
     public AuthorService(AuthorRepository repository, AuthorMapper mapper,
-                         AuthorValidator authorValidator, AuthorNormalizer normalizer) {
+                         AuthorValidator validator, AuthorNormalizer normalizer,
+                         BookRepository bookRepository, CloudinaryService cloudinaryService) {
         this.repository = repository;
         this.mapper = mapper;
-        this.authorValidator = authorValidator;
+        this.validator = validator;
         this.normalizer = normalizer;
+        this.bookRepository = bookRepository;
+        this.cloudinaryService = cloudinaryService;
     }
 
     public Author getAuthorById (
@@ -60,7 +67,7 @@ public class AuthorService {
     ) {
         // Нормализация –> Валидация
         Author normalizedAuthor = normalizer.normalizeAuthor(authorToCreate);
-        authorValidator.validateCreate(normalizedAuthor);
+        validator.validateCreate(normalizedAuthor);
 
         var entityToSave = mapper.toEntity(normalizedAuthor);
         var savedEntity = repository.save(entityToSave);
@@ -73,7 +80,7 @@ public class AuthorService {
         AuthorEntity existing = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Автор с id = " + id + " не найден"));
 
-        authorValidator.validateUpdate(id, author);
+        validator.validateUpdate(id, author);
 
         // Нормализация перед обновлением
         Author normalizedAuthor = normalizer.normalizeAuthor(author);
@@ -96,6 +103,21 @@ public class AuthorService {
     public void deleteAuthor(Long id) {
         var author = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Автор с id = " + id + " не найден"));
+
+        if (bookRepository.existsByAuthorId(id)) {
+            throw new IllegalStateException("Невозможно удалить автора '" + author.getFullName() +
+                    "', так как у него есть книги. Сначала удалите или переназначьте книги.");
+        }
+
+        // Удаляем фото из Cloudinary, если оно есть
+        try {
+            if (author.getPhotoUrl() != null && !author.getPhotoUrl().isBlank()) {
+                String publicId = CloudinaryService.extractPublicIdFromUrl(author.getPhotoUrl());
+                    cloudinaryService.deleteFile(publicId, "image");
+            }
+        } catch (Exception e) { // Не прерываем удаление автора
+            log.error("Ошибка при удалении фото автора из Cloudinary: {}", e.getMessage());
+        }
 
         repository.deleteById(id);
         log.info("Удален автор: '{}' с id = {}", author.getFullName(), id);

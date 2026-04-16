@@ -19,7 +19,6 @@ public class BookNormalizer {
                 book.publicationYear(),
                 stringNormalizer.replaceYo(book.description()),
                 book.authorId(),
-                stringNormalizer.normalizeUrl(book.externalFileUrl()),
                 stringNormalizer.normalizeUrl(book.coverUrl()),
                 book.createdAt(),
                 book.updatedAt(),

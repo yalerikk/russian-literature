@@ -1,31 +1,31 @@
 package com.literature.russian_literature.tags.util;
 
-import com.literature.russian_literature.tags.db.BookTagRepository;
-import com.literature.russian_literature.tags.domain.BookTag;
+import com.literature.russian_literature.tags.db.TagRepository;
+import com.literature.russian_literature.tags.domain.Tag;
 import com.literature.russian_literature.util.GlobalValidator;
 import org.springframework.stereotype.Component;
 
 @Component
-public class BookTagValidator {
-    private final BookTagRepository repository;
+public class TagValidator {
+    private final TagRepository repository;
     private final GlobalValidator globalValidator;
 
-    public BookTagValidator(BookTagRepository repository, GlobalValidator globalValidator) {
+    public TagValidator(TagRepository repository, GlobalValidator globalValidator) {
         this.repository = repository;
         this.globalValidator = globalValidator;
     }
 
-    public void validateForCreate(BookTag tag) {
+    public void validateForCreate(Tag tag) {
         validateRequiredFields(tag);
         validateNameUniqueness(tag.name());
     }
 
-    public void validateForUpdate(Long id, BookTag tag) {
+    public void validateForUpdate(Long id, Tag tag) {
         validateRequiredFields(tag);
         validateNameUniquenessOnUpdate(id, tag.name());
     }
 
-    private void validateRequiredFields(BookTag tag) {
+    private void validateRequiredFields(Tag tag) {
         globalValidator.validateNotBlank(tag.name(), "Название тега");
 
         if (tag.name().length() > 50) {

@@ -6,12 +6,12 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Table(name = "book_tags")
+@Table(name = "tags")
 @Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class BookTagEntity {
+public class TagEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

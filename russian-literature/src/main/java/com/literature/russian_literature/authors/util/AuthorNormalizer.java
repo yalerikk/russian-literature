@@ -21,7 +21,7 @@ public class AuthorNormalizer {
                 author.birthDate(),
                 author.deathDate(),
                 stringNormalizer.replaceYo(author.biography()),
-                stringNormalizer.normalizeUrl(author.photoUrl())
+                author.photoUrl()
         );
     }
 

@@ -1,5 +1,7 @@
 package com.literature.russian_literature.authors.db;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -37,4 +39,10 @@ public interface AuthorRepository extends JpaRepository<AuthorEntity, Long> {
             "LOWER(REPLACE(a.lastName, 'ё', 'е')) LIKE LOWER(REPLACE(CONCAT('%', :query, '%'), 'ё', 'е')) OR " +
             "LOWER(REPLACE(a.middleName, 'ё', 'е')) LIKE LOWER(REPLACE(CONCAT('%', :query, '%'), 'ё', 'е'))")
     List<AuthorEntity> findByNormalizedNameContaining(@Param("query") String query);
+
+    @Query("SELECT a FROM AuthorEntity a WHERE " +
+            "LOWER(REPLACE(a.firstName, 'ё', 'е')) LIKE LOWER(REPLACE(CONCAT('%', :query, '%'), 'ё', 'е')) OR " +
+            "LOWER(REPLACE(a.lastName, 'ё', 'е')) LIKE LOWER(REPLACE(CONCAT('%', :query, '%'), 'ё', 'е')) OR " +
+            "LOWER(REPLACE(a.middleName, 'ё', 'е')) LIKE LOWER(REPLACE(CONCAT('%', :query, '%'), 'ё', 'е'))")
+    Page<AuthorEntity> searchByNormalizedName(@Param("query") String query, Pageable pageable);
 }

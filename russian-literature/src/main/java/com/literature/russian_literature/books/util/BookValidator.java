@@ -4,7 +4,7 @@ import com.literature.russian_literature.authors.db.AuthorRepository;
 import com.literature.russian_literature.books.db.BookRepository;
 import com.literature.russian_literature.books.domain.dto.Book;
 import com.literature.russian_literature.genres.db.GenreRepository;
-import com.literature.russian_literature.tags.db.BookTagRepository;
+import com.literature.russian_literature.tags.db.TagRepository;
 import com.literature.russian_literature.tags.domain.TagType;
 import com.literature.russian_literature.util.GlobalValidator;
 import org.springframework.stereotype.Component;
@@ -16,16 +16,16 @@ public class BookValidator {
     private final BookRepository bookRepository;
     private final AuthorRepository authorRepository;
     private final GenreRepository genreRepository;
-    private final BookTagRepository bookTagRepository;
+    private final TagRepository tagRepository;
     private final GlobalValidator globalValidator;
 
     public BookValidator(BookRepository bookRepository, AuthorRepository authorRepository,
-                         GenreRepository genreRepository, BookTagRepository bookTagRepository,
+                         GenreRepository genreRepository, TagRepository tagRepository,
                          GlobalValidator globalValidator) {
         this.bookRepository = bookRepository;
         this.authorRepository = authorRepository;
         this.genreRepository = genreRepository;
-        this.bookTagRepository = bookTagRepository;
+        this.tagRepository = tagRepository;
         this.globalValidator = globalValidator;
     }
 
@@ -34,8 +34,6 @@ public class BookValidator {
         validateAuthorExists(book.authorId());
         validateTitleUniqueness(book.title(), book.authorId());
         validatePublicationYear(book.publicationYear());
-        globalValidator.validateFileUrl(book.externalFileUrl());
-        globalValidator.validatePhotoUrl(book.coverUrl());
         validateGenres(book.genreIds());
         validateTags(book.tagIds());
     }
@@ -45,8 +43,6 @@ public class BookValidator {
         validateAuthorExists(book.authorId());
         validateTitleUniquenessOnUpdate(id, book.title(), book.authorId());
         validatePublicationYear(book.publicationYear());
-        globalValidator.validateFileUrl(book.externalFileUrl());
-        globalValidator.validatePhotoUrl(book.coverUrl());
         validateGenres(book.genreIds());
         validateTags(book.tagIds());
     }
@@ -54,11 +50,6 @@ public class BookValidator {
     private void validateRequiredFields(Book book) {
         globalValidator.validateNotBlank(book.title(), "Название");
         globalValidator.validateNotBlank(book.description(), "Описание");
-        globalValidator.validateNotBlank(book.externalFileUrl(), "URL File");
-        globalValidator.validateNotBlank(book.coverUrl(), "URL фотографии");
-
-        // publicationYear и authorId проверяются аннотациями в record
-        // storageType проверяется аннотациями в record
 
         // Жанры и теги проверяем отдельно
         validateGenresNotEmpty(book.genreIds());
@@ -119,16 +110,16 @@ public class BookValidator {
     private void validateTags(Set<Long> tagIds) {
         // Проверяем существование всех тегов
         for (Long tagId : tagIds) {
-            if (!bookTagRepository.existsById(tagId)) {
+            if (!tagRepository.existsById(tagId)) {
                 // Более понятное сообщение для администратора
-                var tag = bookTagRepository.findById(tagId);
+                var tag = tagRepository.findById(tagId);
                 String tagName = tag.map(t -> " '" + t.getName() + "'").orElse("");
                 throw new IllegalArgumentException("Тег с id = " + tagId + tagName + " не существует. Пожалуйста, выберите тег из списка.");
             }
         }
 
         // Получаем все теги для проверки обязательных типов
-        var tags = bookTagRepository.findAllById(tagIds);
+        var tags = tagRepository.findAllById(tagIds);
 
         // Проверяем обязательные типы тегов
         boolean hasGrade = tags.stream().anyMatch(tag -> tag.getType() == TagType.GRADE);

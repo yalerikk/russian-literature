@@ -3,7 +3,7 @@ package com.literature.russian_literature.books.db;
 import com.literature.russian_literature.authors.db.AuthorEntity;
 import com.literature.russian_literature.books.domain.dto.Book;
 import com.literature.russian_literature.genres.db.GenreEntity;
-import com.literature.russian_literature.tags.db.BookTagEntity;
+import com.literature.russian_literature.tags.db.TagEntity;
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
@@ -20,8 +20,8 @@ public class BookMapper {
                 .collect(Collectors.toSet());
 
         // Преобразуем теги в ID
-        Set<Long> tagIds = entity.getEducationalTags().stream()
-                .map(BookTagEntity::getId)
+        Set<Long> tagIds = entity.getTags().stream()
+                .map(TagEntity::getId)
                 .collect(Collectors.toSet());
 
         return new Book(
@@ -30,7 +30,6 @@ public class BookMapper {
                 entity.getPublicationYear(),
                 entity.getDescription(),
                 authorId,
-                entity.getExternalFileUrl(),
                 entity.getCoverUrl(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt(),
@@ -39,19 +38,18 @@ public class BookMapper {
         );
     }
 
-    public BookEntity toEntity(Book book, AuthorEntity author, Set<GenreEntity> genres, Set<BookTagEntity> tags) {
+    public BookEntity toEntity(Book book, AuthorEntity author, Set<GenreEntity> genres, Set<TagEntity> tags) {
         var entity = new BookEntity();
         entity.setId(book.id());
         entity.setTitle(book.title());
         entity.setPublicationYear(book.publicationYear());
         entity.setDescription(book.description());
         entity.setAuthor(author);
-        entity.setExternalFileUrl(book.externalFileUrl());
         entity.setCoverUrl(book.coverUrl());
         entity.setCreatedAt(book.createdAt());
         entity.setUpdatedAt(book.updatedAt());
         entity.setGenres(genres);
-        entity.setEducationalTags(tags);
+        entity.setTags(tags);
 
         return entity;
     }

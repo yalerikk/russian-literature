@@ -23,7 +23,7 @@ public class BookSpecifications {
             if (name == null || name.isBlank()) {
                 return cb.conjunction();
             }
-            Join<Object, Object> tagsJoin = root.join("educationalTags", JoinType.LEFT);
+            Join<Object, Object> tagsJoin = root.join("tags", JoinType.LEFT);
             return cb.and(
                     cb.equal(tagsJoin.get("type"), type),
                     cb.equal(tagsJoin.get("name"), name)

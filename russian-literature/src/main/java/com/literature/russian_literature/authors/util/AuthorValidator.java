@@ -26,7 +26,6 @@ public class AuthorValidator {
         validateFullNameUniqueness(author.firstName(), author.lastName(), author.middleName());
         validateDates(author.birthDate(), author.deathDate());
         validateBiographyLength(author.biography());
-        globalValidator.validatePhotoUrl(author.photoUrl());
     }
 
     public void validateUpdate(Long id, Author author) {
@@ -34,7 +33,6 @@ public class AuthorValidator {
         validateFullNameUniquenessOnUpdate(id, author.firstName(), author.lastName(), author.middleName());
         validateDates(author.birthDate(), author.deathDate());
         validateBiographyLength(author.biography());
-        globalValidator.validatePhotoUrl(author.photoUrl());
     }
 
     private void validateRequiredFields(Author author) {
@@ -42,7 +40,6 @@ public class AuthorValidator {
         globalValidator.validateNotBlank(author.lastName(), "Фамилия");
         globalValidator.validateNotBlank(author.middleName(), "Отчество");
         globalValidator.validateNotBlank(author.biography(), "Биография");
-        globalValidator.validateNotBlank(author.photoUrl(), "URL фотографии");
 
         // Дополнительная проверка длины после нормализации
         if (author.firstName().length() > 50) {

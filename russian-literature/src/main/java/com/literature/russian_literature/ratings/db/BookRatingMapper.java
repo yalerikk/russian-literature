@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class BookRatingMapper {
-
     public BookRating toDomain(BookRatingEntity entity) {
         return new BookRating(
                 entity.getId(),

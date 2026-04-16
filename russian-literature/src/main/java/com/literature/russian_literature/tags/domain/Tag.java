@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-public record BookTag(
+public record Tag(
         Long id,
 
         @NotBlank(message = "Название тега обязательно")

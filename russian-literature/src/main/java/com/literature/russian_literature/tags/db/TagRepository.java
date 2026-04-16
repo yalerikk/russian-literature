@@ -8,15 +8,15 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface BookTagRepository extends JpaRepository<BookTagEntity, Long> {
-    Optional<BookTagEntity> findByName(String name);
+public interface TagRepository extends JpaRepository<TagEntity, Long> {
+    Optional<TagEntity> findByName(String name);
     boolean existsByName(String name);
-    List<BookTagEntity> findByType(TagType type);
+    List<TagEntity> findByType(TagType type);
 
     // Новый метод для получения тегов по нескольким типам
-    List<BookTagEntity> findByTypeIn(List<TagType> types);
+    List<TagEntity> findByTypeIn(List<TagType> types);
 
     // Метод для проверки существования тегов по ID
-    @Query("SELECT COUNT(t) FROM BookTagEntity t WHERE t.id IN :tagIds")
+    @Query("SELECT COUNT(t) FROM TagEntity t WHERE t.id IN :tagIds")
     long countExistingTagsByIds(List<Long> tagIds);
 }

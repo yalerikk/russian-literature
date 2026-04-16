@@ -2,12 +2,13 @@ package com.literature.russian_literature.books.db;
 
 import com.literature.russian_literature.authors.db.AuthorEntity;
 import com.literature.russian_literature.genres.db.GenreEntity;
-import com.literature.russian_literature.tags.db.BookTagEntity;
+import com.literature.russian_literature.ratings.db.BookRatingEntity;
+import com.literature.russian_literature.tags.db.TagEntity;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -36,8 +37,9 @@ public class BookEntity {
     @JoinColumn(name = "author_id", nullable = false)
     private AuthorEntity author;
 
-    // Ссылка на файл книги в облаке (Cloudinary, S3)
-    private String externalFileUrl;
+    // Связь с форматами книги
+    @OneToMany(mappedBy = "book", fetch = FetchType.LAZY)
+    private Set<BookFileEntity> files = new HashSet<>();
 
     private String coverUrl;
 
@@ -59,11 +61,15 @@ public class BookEntity {
     // Связь с учебными тегами
     @ManyToMany
     @JoinTable(
-            name = "book_educational_tags",
+            name = "book_tags",
             joinColumns = @JoinColumn(name = "book_id"),
             inverseJoinColumns = @JoinColumn(name = "tag_id")
     )
-    private Set<BookTagEntity> educationalTags = new HashSet<>();
+    private Set<TagEntity> tags = new HashSet<>();
+
+    // Связь с рейтингом
+    @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<BookRatingEntity> ratings = new HashSet<>();
 
     @PreUpdate
     protected void onUpdate() {

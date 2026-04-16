@@ -1,5 +1,6 @@
 package com.literature.russian_literature.genres.domain;
 
+import com.literature.russian_literature.books.db.BookRepository;
 import com.literature.russian_literature.genres.db.GenreEntity;
 import com.literature.russian_literature.genres.db.GenreMapper;
 import com.literature.russian_literature.genres.db.GenreRepository;
@@ -21,13 +22,15 @@ public class GenreService {
     private final GenreMapper mapper;
     private final GenreValidator validator;
     private final GenreNormalizer normalizer;
+    private final BookRepository bookRepository;
 
     public GenreService(GenreRepository repository, GenreMapper mapper,
-                        GenreValidator validator, GenreNormalizer normalizer) {
+                        GenreValidator validator, GenreNormalizer normalizer, BookRepository bookRepository) {
         this.repository = repository;
         this.mapper = mapper;
         this.validator = validator;
         this.normalizer = normalizer;
+        this.bookRepository = bookRepository;
     }
 
     public Genre getGenreById(Long id) {
@@ -79,6 +82,12 @@ public class GenreService {
     public void deleteGenre(Long id) {
         GenreEntity genre = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Жанр с id = " + id + " не найден"));
+
+        if (bookRepository.existsByGenres_Id(id)) {
+            log.warn("Жанр '{}' используется в книгах, но будет удален вместе со связями", genre.getName());
+            bookRepository.deleteAllGenreLinks(id);
+        }
+
         repository.deleteById(id);
         log.info("Удален жанр: '{}' с id = {}", genre.getName(), id);
     }

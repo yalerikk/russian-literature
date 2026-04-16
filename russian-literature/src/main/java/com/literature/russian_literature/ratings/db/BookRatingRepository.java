@@ -10,7 +10,6 @@ import java.util.Optional;
 
 @Repository
 public interface BookRatingRepository extends JpaRepository<BookRatingEntity, Long> {
-
     Optional<BookRatingEntity> findByBookIdAndUserId(Long bookId, Long userId);
 
     List<BookRatingEntity> findByBookId(Long bookId);

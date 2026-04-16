@@ -23,12 +23,6 @@ public record Book(
         @NotNull(message = "Автор обязателен")
         Long authorId,
 
-        @Pattern(regexp = "^(http|https)://.*\\.(pdf|epub|fb2|txt)$",
-                message = "URL файла должен начинаться с http:// или https:// и заканчиваться на .pdf, .epub, .fb2, .txt")
-        String externalFileUrl,
-
-        @Pattern(regexp = "^(http|https)://.*\\.(jpg|jpeg|png)$|^$",
-                message = "URL обложки должен начинаться с http:// или https:// и заканчиваться на .jpg, .jpeg или .png")
         String coverUrl,
 
         @Null LocalDateTime createdAt,

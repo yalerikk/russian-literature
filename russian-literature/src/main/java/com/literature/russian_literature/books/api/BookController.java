@@ -1,6 +1,7 @@
 package com.literature.russian_literature.books.api;
 
 import com.literature.russian_literature.books.db.BookEntity;
+import com.literature.russian_literature.books.domain.BookFormat;
 import com.literature.russian_literature.books.domain.dto.Book;
 import com.literature.russian_literature.books.domain.BookService;
 import com.literature.russian_literature.catalog.api.dto.BookForCatalogDto;
@@ -16,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/books")
@@ -135,5 +137,14 @@ public class BookController {
         Page<BookEntity> bookPage = bookService.filterBooks(genreIds, grade, level, literature, readingType, pageable);
         Page<BookForCatalogDto> dtoPage = bookPage.map(bookForCatalogMapper::toDto);
         return ResponseEntity.ok(dtoPage);
+    }
+
+    // DOWNLOAD
+    @GetMapping("/{id}/download")
+    public ResponseEntity<Map<String, String>> getBookFileUrl(
+            @PathVariable Long id,
+            @RequestParam BookFormat format) {
+        String url = bookService.getBookFileUrlByFormat(id, format);
+        return ResponseEntity.ok(Map.of("url", url));
     }
 }

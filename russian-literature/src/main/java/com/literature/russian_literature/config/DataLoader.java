@@ -6,8 +6,8 @@ import com.literature.russian_literature.books.db.BookEntity;
 import com.literature.russian_literature.books.db.BookRepository;
 import com.literature.russian_literature.genres.db.GenreEntity;
 import com.literature.russian_literature.genres.db.GenreRepository;
-import com.literature.russian_literature.tags.db.BookTagEntity;
-import com.literature.russian_literature.tags.db.BookTagRepository;
+import com.literature.russian_literature.tags.db.TagEntity;
+import com.literature.russian_literature.tags.db.TagRepository;
 import com.literature.russian_literature.tags.domain.TagType;
 
 import org.springframework.boot.CommandLineRunner;
@@ -20,23 +20,21 @@ import java.util.Set;
 
 @Component
 public class DataLoader implements CommandLineRunner {
-
     private final AuthorRepository authorRepository;
     private final GenreRepository genreRepository;
-    private final BookTagRepository bookTagRepository;
+    private final TagRepository tagRepository;
     private final BookRepository bookRepository;
 
     public DataLoader(AuthorRepository authorRepository, GenreRepository genreRepository,
-                      BookTagRepository bookTagRepository, BookRepository bookRepository) {
+                      TagRepository tagRepository, BookRepository bookRepository) {
         this.authorRepository = authorRepository;
         this.genreRepository = genreRepository;
-        this.bookTagRepository = bookTagRepository;
+        this.tagRepository = tagRepository;
         this.bookRepository = bookRepository;
     }
 
     @Override
-    public void run(String... args) throws Exception {
-        // Проверяем, есть ли уже данные
+    public void run(String... args) {
         if (authorRepository.count() > 0) {
             System.out.println("✅ Данные уже загружены, пропускаем инициализацию");
             return;
@@ -44,7 +42,7 @@ public class DataLoader implements CommandLineRunner {
 
         System.out.println("🔄 Начало загрузки тестовых данных...");
 
-        // Создаем жанры
+        // ----- Жанры -----
         List<GenreEntity> genres = List.of(
                 new GenreEntity(null, "Роман"),
                 new GenreEntity(null, "Поэзия"),
@@ -57,62 +55,90 @@ public class DataLoader implements CommandLineRunner {
         );
         genreRepository.saveAll(genres);
 
-        // Создаем теги
-        List<BookTagEntity> tags = List.of(
-                new BookTagEntity(null, "10 класс", TagType.GRADE),
-                new BookTagEntity(null, "11 класс", TagType.GRADE),
-                new BookTagEntity(null, "База", TagType.LEVEL),
-                new BookTagEntity(null, "Профиль", TagType.LEVEL),
-                new BookTagEntity(null, "Русская литература", TagType.CATEGORY),
-                new BookTagEntity(null, "Иностранная литература", TagType.CATEGORY),
-                new BookTagEntity(null, "Основное", TagType.READING_TYPE),
-                new BookTagEntity(null, "Летнее", TagType.READING_TYPE),
-                new BookTagEntity(null, "Дополнительное", TagType.READING_TYPE)
+        // ----- Теги -----
+        List<TagEntity> tags = List.of(
+                new TagEntity(null, "10 класс", TagType.GRADE),
+                new TagEntity(null, "11 класс", TagType.GRADE),
+                new TagEntity(null, "База", TagType.LEVEL),
+                new TagEntity(null, "Профиль", TagType.LEVEL),
+                new TagEntity(null, "Русская литература", TagType.CATEGORY),
+                new TagEntity(null, "Иностранная литература", TagType.CATEGORY),
+                new TagEntity(null, "Основное чтение", TagType.READING_TYPE),
+                new TagEntity(null, "Летнее чтение", TagType.READING_TYPE),
+                new TagEntity(null, "Дополнительное чтение", TagType.READING_TYPE)
         );
-        bookTagRepository.saveAll(tags);
+        tagRepository.saveAll(tags);
 
-        // Создаем авторов
+        // ----- Авторы -----
         List<AuthorEntity> authors = List.of(
                 new AuthorEntity(null, "Александр", "Пушкин", "Сергеевич",
                         LocalDate.of(1799, 6, 6), LocalDate.of(1837, 2, 10),
-                        "Великий русский поэт, драматург и прозаик, создатель современного русского литературного языка. Автор романа в стихах «Евгений Онегин», множества стихотворений, поэм и драматических произведений.",
+                        "Великий русский поэт...",
                         "https://upload.wikimedia.org/wikipedia/commons/5/56/Kiprensky_Pushkin.jpg"),
                 new AuthorEntity(null, "Лев", "Толстой", "Николаевич",
                         LocalDate.of(1828, 9, 9), LocalDate.of(1910, 11, 20),
-                        "Один из наиболее известных русских писателей и мыслителей, один из величайших писателей-романистов мира. Автор романов «Война и мир», «Анна Каренина», «Воскресение».",
+                        "Один из наиболее известных русских писателей...",
                         "https://upload.wikimedia.org/wikipedia/commons/c/c6/L.N.Tolstoy_Prokudin-Gorsky.jpg"),
                 new AuthorEntity(null, "Фёдор", "Достоевский", "Михайлович",
                         LocalDate.of(1821, 11, 11), LocalDate.of(1881, 2, 9),
-                        "Русский писатель, мыслитель, философ и публицист. Автор романов «Преступление и наказание», «Идиот», «Братья Карамазовы», «Бесы».",
+                        "Русский писатель, мыслитель...",
                         "https://upload.wikimedia.org/wikipedia/commons/7/78/Fedor_Dostoevsky_1872.jpg"),
                 new AuthorEntity(null, "Антон", "Чехов", "Павлович",
                         LocalDate.of(1860, 1, 29), LocalDate.of(1904, 7, 15),
-                        "Русский писатель, прозаик, драматург. Классик мировой литературы. Автор пьес «Чайка», «Три сестры», «Вишнёвый сад», множества рассказов.",
+                        "Русский писатель, драматург...",
                         "https://upload.wikimedia.org/wikipedia/commons/b/ba/Anton_Tschechow_1902.jpg"),
                 new AuthorEntity(null, "Николай", "Гоголь", "Васильевич",
                         LocalDate.of(1809, 4, 1), LocalDate.of(1852, 3, 4),
-                        "Русский прозаик, драматург, поэт, критик, публицист. Автор «Мёртвых душ», «Ревизора», «Вечеров на хуторе близ Диканьки», «Тараса Бульбы».",
+                        "Русский прозаик, драматург...",
                         "https://upload.wikimedia.org/wikipedia/commons/0/07/Nikolay_Gogol.jpg"),
                 new AuthorEntity(null, "Михаил", "Лермонтов", "Юрьевич",
                         LocalDate.of(1814, 10, 15), LocalDate.of(1841, 7, 27),
-                        "Русский поэт, прозаик, драматург, художник. Автор романа «Герой нашего времени», поэмы «Демон», стихотворения «Смерть поэта».",
+                        "Русский поэт, прозаик...",
                         "https://upload.wikimedia.org/wikipedia/commons/4/4e/Mikhail_Lermontov_%281837%29.jpg"),
                 new AuthorEntity(null, "Иван", "Тургенев", "Сергеевич",
                         LocalDate.of(1818, 11, 9), LocalDate.of(1883, 9, 3),
-                        "Русский писатель-реалист, поэт, публицист, драматург, переводчик. Автор романов «Отцы и дети», «Дворянское гнездо», «Накануне».",
+                        "Русский писатель-реалист...",
                         "https://upload.wikimedia.org/wikipedia/commons/4/4b/Ivan_Turgenev_1867.jpg"),
                 new AuthorEntity(null, "Александр", "Грибоедов", "Сергеевич",
                         LocalDate.of(1795, 1, 15), LocalDate.of(1829, 2, 11),
-                        "Русский дипломат, поэт, драматург, пианист и композитор. Автор комедии «Горе от ума».",
+                        "Русский дипломат, поэт...",
                         "https://upload.wikimedia.org/wikipedia/commons/8/89/Alexander_Griboyedov_1820s.jpg"),
                 new AuthorEntity(null, "Михаил", "Булгаков", "Афанасьевич",
                         LocalDate.of(1891, 5, 15), LocalDate.of(1940, 3, 10),
-                        "Русский писатель, драматург, театральный режиссёр и актёр. Автор романов «Мастер и Маргарита», «Белая гвардия», «Собачье сердце».",
-                        "https://upload.wikimedia.org/wikipedia/commons/e/ec/Mikhail_Bulgakov_2.jpg")
+                        "Русский писатель, драматург...",
+                        "https://upload.wikimedia.org/wikipedia/commons/e/ec/Mikhail_Bulgakov_2.jpg"),
+                new AuthorEntity(null, "Максим", "Горький", "Алексеевич",
+                        LocalDate.of(1868, 3, 28), LocalDate.of(1936, 6, 18),
+                        "Русский писатель, прозаик, драматург...",
+                        "https://example.com/gorky.jpg"),
+                new AuthorEntity(null, "Иван", "Бунин", "Алексеевич",
+                        LocalDate.of(1870, 10, 22), LocalDate.of(1953, 11, 8),
+                        "Русский писатель, поэт, лауреат Нобелевской премии...",
+                        "https://example.com/bunin.jpg"),
+                new AuthorEntity(null, "Андрей", "Платонов", "Платонович",
+                        LocalDate.of(1899, 9, 1), LocalDate.of(1951, 1, 5),
+                        "Русский советский писатель, драматург...",
+                        "https://example.com/platonov.jpg"),
+                new AuthorEntity(null, "Михаил", "Шолохов", "Александрович",
+                        LocalDate.of(1905, 5, 24), LocalDate.of(1984, 2, 21),
+                        "Русский советский писатель, лауреат Нобелевской премии...",
+                        "https://example.com/sholokhov.jpg"),
+                new AuthorEntity(null, "Александр", "Вампилов", "Валентинович",
+                        LocalDate.of(1937, 8, 19), LocalDate.of(1972, 8, 17),
+                        "Русский драматург...",
+                        "https://example.com/vampilov.jpg"),
+                new AuthorEntity(null, "Евгений", "Замятин", "Иванович",
+                        LocalDate.of(1884, 2, 1), LocalDate.of(1937, 3, 10),
+                        "Русский писатель, критик...",
+                        "https://example.com/zamyatin.jpg"),
+                new AuthorEntity(null, "Эрнест", "Хемингуэй", "Миллер",
+                        LocalDate.of(1899, 7, 21), LocalDate.of(1961, 7, 2),
+                        "Американский писатель, лауреат Нобелевской премии...",
+                        "https://example.com/hemingway.jpg")
         );
         authorRepository.saveAll(authors);
 
-        // Создаем тестовые книги
+        // Удобные ссылки на авторов
         AuthorEntity pushkin = authors.get(0);
         AuthorEntity tolstoy = authors.get(1);
         AuthorEntity dostoevsky = authors.get(2);
@@ -122,136 +148,179 @@ public class DataLoader implements CommandLineRunner {
         AuthorEntity turgenev = authors.get(6);
         AuthorEntity griboedov = authors.get(7);
         AuthorEntity bulgakov = authors.get(8);
+        AuthorEntity gorky = authors.get(9);
+        AuthorEntity bunin = authors.get(10);
+        AuthorEntity platonov = authors.get(11);
+        AuthorEntity sholokhov = authors.get(12);
+        AuthorEntity vampilov = authors.get(13);
+        AuthorEntity zamyatin = authors.get(14);
+        AuthorEntity hemingway = authors.get(15);
 
-        Set<GenreEntity> novelGenres = Set.of(genres.get(0)); // Роман
-        Set<GenreEntity> poetryGenres = Set.of(genres.get(1)); // Поэзия
-        Set<GenreEntity> dramaGenres = Set.of(genres.get(2)); // Драма
-        Set<GenreEntity> storyGenres = Set.of(genres.get(4)); // Рассказ
-        Set<GenreEntity> comedyGenres = Set.of(genres.get(6)); // Комедия
+        // Удобные ссылки на жанры
+        GenreEntity novel = genres.get(0);
+        GenreEntity poetry = genres.get(1);
+        GenreEntity drama = genres.get(2);
+        GenreEntity comedy = genres.get(5);
 
-        // Готовим наборы тегов
-        Set<BookTagEntity> grade10BaseRussian = Set.of(tags.get(0), tags.get(2), tags.get(4)); // 10 класс, База, Русская
-        Set<BookTagEntity> grade10ProfileRussian = Set.of(tags.get(0), tags.get(3), tags.get(4)); // 10 класс, Профиль, Русская
-        Set<BookTagEntity> grade11BaseRussian = Set.of(tags.get(1), tags.get(2), tags.get(4)); // 11 класс, База, Русская
-        Set<BookTagEntity> grade11ProfileRussian = Set.of(tags.get(1), tags.get(3), tags.get(4)); // 11 класс, Профиль, Русская
+        // Удобные ссылки на теги (по индексам из списка)
+        TagEntity grade10 = tags.get(0);
+        TagEntity grade11 = tags.get(1);
+        TagEntity levelBase = tags.get(2);
+        TagEntity levelProfile = tags.get(3);
+        TagEntity categoryRussian = tags.get(4);
+        TagEntity categoryForeign = tags.get(5);
+        TagEntity readingMain = tags.get(6);      // Основное чтение
+        TagEntity readingSummer = tags.get(7);    // Летнее чтение
+        TagEntity readingExtra = tags.get(8);     // Дополнительное чтение
 
         LocalDateTime now = LocalDateTime.now();
+        String dummyFileUrl = "https://example.com/book.pdf";
 
-        // Создаем тестовые книги с разными датами создания для тестирования "новинок"
+        // ----- Книги с правильными тегами (согласно программам 10–11 классов) -----
+        // ----- Книги (без файлов – только обложки и метаданные) -----
         List<BookEntity> books = List.of(
-                // Новые книги (последние 30 дней)
                 createBook(null, "Евгений Онегин", 1833,
-                        "Роман в стихах Александра Пушкина, одно из самых значительных произведений русской литературы. Рассказывает о жизни светского молодого человека.",
-                        pushkin, StorageType.TEXT,
-                        "Мой дядя самых честных правил,\nКогда не в шутку занемог,\nОн уважать себя заставил\nИ лучше выдумать не мог...",
-                        null,
+                        "Роман в стихах Александра Пушкина...",
+                        pushkin,
                         "https://cv6.litres.ru/pub/c/elektronnaya-kniga/cover_415/6732071-aleksandr-pushkin-evgeneiy-onegin.jpg",
-                        novelGenres, grade10BaseRussian,
+                        Set.of(novel, poetry), Set.of(grade10, levelBase, categoryRussian, readingSummer),
                         now.minusDays(5), now.minusDays(5)),
 
                 createBook(null, "Война и мир", 1869,
-                        "Роман-эпопея Льва Толстого, описывающий русское общество в эпоху войн против Наполеона в 1805—1812 годах.",
-                        tolstoy, StorageType.TEXT,
-                        "— Eh bien, mon prince. Gênes et Lucques ne sont plus que des apanages, des поместья, de la famille Buonaparte...",
-                        null,
+                        "Роман-эпопея Льва Толстого...",
+                        tolstoy,
                         "https://cv1.litres.ru/pub/c/elektronnaya-kniga/cover_415/6715112-lev-tolstoy-voyna-i-mir-tom-1.jpg",
-                        novelGenres, grade11ProfileRussian,
+                        Set.of(novel), Set.of(grade10, levelBase, categoryRussian, readingMain),
                         now.minusDays(10), now.minusDays(10)),
 
                 createBook(null, "Преступление и наказание", 1866,
-                        "Социально-психологический и социально-философский роман Фёдора Достоевского, посвящённый нравственным проблемам.",
-                        dostoevsky, StorageType.TEXT,
-                        "В начале июля, в чрезвычайно жаркое время, под вечер, один молодой человек вышел из своей каморки...",
-                        null,
+                        "Социально-психологический роман Фёдора Достоевского...",
+                        dostoevsky,
                         "https://cv6.litres.ru/pub/c/elektronnaya-kniga/cover_415/6715260-fedor-dostoevskiy-prestuplenie-i-nakazanie.jpg",
-                        novelGenres, grade11BaseRussian,
+                        Set.of(novel), Set.of(grade10, levelBase, categoryRussian, readingMain),
                         now.minusDays(15), now.minusDays(15)),
 
-                // Книги среднего возраста (30-60 дней)
                 createBook(null, "Герой нашего времени", 1840,
-                        "Роман Михаила Лермонтова, состоящий из нескольких повестей, объединённых главным героем — Печориным.",
-                        lermontov, StorageType.TEXT,
-                        "— Аксинья! — крикнул я, входя в сени. — Нет дома! — отвечал мне из-за дверей грубый голос.",
-                        null,
+                        "Роман Михаила Лермонтова...",
+                        lermontov,
                         "https://cv5.litres.ru/pub/c/elektronnaya-kniga/cover_415/6715145-mihail-lermontov-geroy-nashego-vremeni.jpg",
-                        novelGenres, grade10ProfileRussian,
+                        Set.of(novel), Set.of(grade10, levelBase, categoryRussian, readingSummer),
                         now.minusDays(40), now.minusDays(40)),
 
                 createBook(null, "Мёртвые души", 1842,
-                        "Поэма Николая Гоголя, повествующая о похождениях Чичикова, скупающего «мёртвые души» крестьян.",
-                        gogol, StorageType.TEXT,
-                        "В ворота гостиницы губернского города NN въехала довольно красивая рессорная небольшая бричка...",
-                        null,
+                        "Поэма Николая Гоголя...",
+                        gogol,
                         "https://cv8.litres.ru/pub/c/elektronnaya-kniga/cover_415/6715259-nikolay-gogol-mertvye-dushi.jpg",
-                        novelGenres, grade10BaseRussian,
+                        Set.of(novel), Set.of(grade10, levelBase, categoryRussian, readingMain),
                         now.minusDays(50), now.minusDays(50)),
 
-                // Старые книги (более 60 дней)
                 createBook(null, "Отцы и дети", 1862,
-                        "Роман Ивана Тургенева, затрагивающий тему конфликта поколений и нигилизма.",
-                        turgenev, StorageType.TEXT,
-                        "— Что, Петр? Не видать еще? — спрашивал 20 мая 1859 года, выходя без шапки на низкое крылечко постоялого двора...",
-                        null,
+                        "Роман Ивана Тургенева...",
+                        turgenev,
                         "https://cv5.litres.ru/pub/c/elektronnaya-kniga/cover_415/6715139-ivan-turgenev-otcy-i-deti.jpg",
-                        novelGenres, grade11BaseRussian,
+                        Set.of(novel), Set.of(grade10, levelBase, categoryRussian, readingMain),
                         now.minusDays(70), now.minusDays(70)),
 
                 createBook(null, "Горе от ума", 1825,
-                        "Комедия в стихах Александра Грибоедова, сатира на аристократическое московское общество.",
-                        griboedov, StorageType.TEXT,
-                        "День чудесный!..\nВо всю жизнь такую ночь не видывал!..\nА уж я люблю, признаться, почитать...",
-                        null,
+                        "Комедия Александра Грибоедова...",
+                        griboedov,
                         "https://cv4.litres.ru/pub/c/elektronnaya-kniga/cover_415/6715138-aleksandr-griboedov-gore-ot-uma.jpg",
-                        comedyGenres, grade10BaseRussian,
+                        Set.of(comedy), Set.of(grade10, levelBase, categoryRussian, readingSummer),
                         now.minusDays(80), now.minusDays(80)),
 
                 createBook(null, "Мастер и Маргарита", 1967,
-                        "Роман Михаила Булгакова, сочетающий в себе элементы сатиры, фантастики и философской притчи.",
-                        bulgakov, StorageType.TEXT,
-                        "В час жаркого весеннего заката на Патриарших прудах появились два гражданина.",
-                        null,
+                        "Роман Михаила Булгакова...",
+                        bulgakov,
                         "https://cv5.litres.ru/pub/c/elektronnaya-kniga/cover_415/6715123-mihail-bulgakov-master-i-margarita.jpg",
-                        novelGenres, grade11ProfileRussian,
+                        Set.of(novel), Set.of(grade11, levelBase, categoryRussian, readingMain),
                         now.minusDays(90), now.minusDays(90)),
 
                 createBook(null, "Анна Каренина", 1877,
-                        "Роман Льва Толстого о трагической любви замужней Анны Карениной к блестящему офицеру Вронскому.",
-                        tolstoy, StorageType.TEXT,
-                        "Все счастливые семьи похожи друг на друга, каждая несчастливая семья несчастлива по-своему.",
-                        null,
+                        "Роман Льва Толстого...",
+                        tolstoy,
                         "https://cv2.litres.ru/pub/c/elektronnaya-kniga/cover_415/6715114-lev-tolstoy-anna-karenina.jpg",
-                        novelGenres, grade11BaseRussian,
+                        Set.of(novel), Set.of(grade10, levelProfile, categoryRussian, readingExtra),
                         now.minusDays(100), now.minusDays(100)),
 
                 createBook(null, "Вишнёвый сад", 1904,
-                        "Лирическая пьеса Антона Чехова в четырёх действиях, рассказывающая о жизни зажиточных дворян.",
-                        chekhov, StorageType.TEXT,
-                        "Комната, которая до сих пор называется детскою...",
-                        null,
+                        "Пьеса Антона Чехова...",
+                        chekhov,
                         "https://cv8.litres.ru/pub/c/elektronnaya-kniga/cover_415/6715136-anton-chehov-vishnevyy-sad.jpg",
-                        dramaGenres, grade10BaseRussian,
-                        now.minusDays(110), now.minusDays(110))
+                        Set.of(drama, comedy), Set.of(grade11, levelBase, categoryRussian, readingMain),
+                        now.minusDays(110), now.minusDays(110)),
+
+                createBook(null, "На дне", 1902,
+                        "Пьеса Максима Горького о ночлежке, философские споры о правде и человеке...",
+                        gorky,
+                        "https://example.com/cover_na_dne.jpg",
+                        Set.of(drama), Set.of(grade11, levelBase, categoryRussian, readingMain),
+                        now.minusDays(120), now.minusDays(120)),
+
+                createBook(null, "Мы", 1924,
+                        "Роман-антиутопия Евгения Замятина, предвосхитивший тоталитарные режимы...",
+                        zamyatin,
+                        "https://example.com/cover_my.jpg",
+                        Set.of(novel), Set.of(grade11, levelBase, categoryRussian, readingExtra),
+                        now.minusDays(130), now.minusDays(130)),
+
+                createBook(null, "Челкаш", 1895,
+                        "Рассказ Максима Горького о босяке, контрабандисте и его нравственном выборе...",
+                        gorky,
+                        "https://example.com/cover_chelkash.jpg",
+                        Set.of(genres.get(3)), // Рассказ
+                        Set.of(grade11, levelProfile, categoryRussian, readingMain),
+                        now.minusDays(140), now.minusDays(140)),
+
+                createBook(null, "Старик и море", 1952,
+                        "Повесть Эрнеста Хемингуэя о рыбаке Сантьяго и его борьбе с морем...",
+                        hemingway,
+                        "https://example.com/cover_oldman.jpg",
+                        Set.of(novel), Set.of(grade11, levelProfile, categoryForeign, readingExtra),
+                        now.minusDays(150), now.minusDays(150)),
+
+                createBook(null, "Фро", 1936,
+                        "Рассказ Андрея Платонова о любви, разлуке и вере в чудо...",
+                        platonov,
+                        "https://example.com/cover_fro.jpg",
+                        Set.of(genres.get(3)), // Рассказ
+                        Set.of(grade11, levelBase, categoryRussian, readingMain),
+                        now.minusDays(200), now.minusDays(200)),
+
+                createBook(null, "На заре туманной юности", 1936,
+                        "Рассказ Андрея Платонова о юности, выборе пути и преодолении...",
+                        platonov,
+                        "https://example.com/cover_zare.jpg",
+                        Set.of(genres.get(3)), // Рассказ
+                        Set.of(grade11, levelBase, categoryRussian, readingMain),
+                        now.minusDays(210), now.minusDays(210)),
+
+                createBook(null, "Тихий Дон", 1940,
+                        "Роман-эпопея Михаила Шолохова о судьбе казачества в годы войн и революций (избранные главы)...",
+                        sholokhov,
+                        "https://example.com/cover_tihiy_don.jpg",
+                        Set.of(novel), Set.of(grade11, levelBase, categoryRussian, readingMain),
+                        now.minusDays(300), now.minusDays(300)),
+
+                createBook(null, "Утиная охота", 1970,
+                        "Пьеса Александра Вампилова о кризисе советского интеллигента, экзистенциальном выборе...",
+                        vampilov,
+                        "https://example.com/cover_utinaya.jpg",
+                        Set.of(drama), Set.of(grade11, levelBase, categoryRussian, readingMain),
+                        now.minusDays(400), now.minusDays(400))
         );
+
         bookRepository.saveAll(books);
 
         System.out.println("✅ Тестовые данные загружены успешно!");
-        System.out.println("📚 Создано авторов: " + authors.size());
-        System.out.println("📖 Создано жанров: " + genres.size());
-        System.out.println("🏷️ Создано тегов: " + tags.size());
-        System.out.println("📕 Создано книг: " + books.size());
-
-        // Для проверки новинок
-        System.out.println("\n📊 Для тестирования категории 'Новинки' (последние 30 дней):");
-        books.stream()
-                .filter(book -> book.getCreatedAt().isAfter(now.minusDays(30)))
-                .forEach(book -> System.out.println("   • " + book.getTitle() + " (" + book.getCreatedAt().toLocalDate() + ")"));
+        System.out.println("📚 Авторов: " + authors.size());
+        System.out.println("📖 Жанров: " + genres.size());
+        System.out.println("🏷️ Тегов: " + tags.size());
+        System.out.println("📕 Книг: " + books.size());
     }
 
-    // Вспомогательный метод для создания BookEntity
     private BookEntity createBook(Long id, String title, Integer publicationYear,
-                                  String description, AuthorEntity author, StorageType storageType,
-                                  String content, String filePath, String coverUrl,
-                                  Set<GenreEntity> genres, Set<BookTagEntity> tags,
+                                  String description, AuthorEntity author,
+                                  String coverUrl, Set<GenreEntity> genres, Set<TagEntity> tags,
                                   LocalDateTime createdAt, LocalDateTime updatedAt) {
         BookEntity book = new BookEntity();
         book.setId(id);
@@ -259,12 +328,9 @@ public class DataLoader implements CommandLineRunner {
         book.setPublicationYear(publicationYear);
         book.setDescription(description);
         book.setAuthor(author);
-        book.setStorageType(storageType);
-        book.setContent(content);
-        book.setFilePath(filePath);
         book.setCoverUrl(coverUrl);
         book.setGenres(genres);
-        book.setEducationalTags(tags);
+        book.setTags(tags);
         book.setCreatedAt(createdAt);
         book.setUpdatedAt(updatedAt);
         return book;

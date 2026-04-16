@@ -27,8 +27,5 @@ public record Author(
         @Size(min = 10, max = 2000, message = "Биография должна быть от 10 до 2000 символов")
         String biography,
 
-        @NotBlank(message = "URL фотографии обязателен")
-        @Pattern(regexp = "^(http|https)://.*\\.(jpg|jpeg|png)$",
-                message = "URL должен начинаться с http:// или https:// и заканчиваться на .jpg, .jpeg или .png")
         String photoUrl
 ) {}

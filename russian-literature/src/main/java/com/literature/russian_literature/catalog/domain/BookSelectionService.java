@@ -88,7 +88,7 @@ public class BookSelectionService {
 
     private List<BookEntity> getBooksByGenre(CatalogCategory category) {
         Pageable pageable = PageRequest.of(0, category.booksToShow());
-        return bookRepository.findByGenreId(category.genreId(), pageable).getContent();
+        return bookRepository.findByGenres_Id(category.genreId(), pageable).getContent();
     }
 
     private List<BookEntity> getBooksByAuthor(CatalogCategory category) {
@@ -120,7 +120,7 @@ public class BookSelectionService {
     }
 
     private Page<BookEntity> getBooksByGenrePage(CatalogCategory category, Pageable pageable) {
-        return bookRepository.findByGenreId(category.genreId(), pageable);
+        return bookRepository.findByGenres_Id(category.genreId(), pageable);
     }
 
     private Page<BookEntity> getBooksByAuthorPage(CatalogCategory category, Pageable pageable) {

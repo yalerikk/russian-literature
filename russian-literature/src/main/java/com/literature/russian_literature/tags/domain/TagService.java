@@ -1,10 +1,11 @@
 package com.literature.russian_literature.tags.domain;
 
-import com.literature.russian_literature.tags.db.BookTagEntity;
-import com.literature.russian_literature.tags.db.BookTagMapper;
-import com.literature.russian_literature.tags.db.BookTagRepository;
-import com.literature.russian_literature.tags.util.BookTagNormalizer;
-import com.literature.russian_literature.tags.util.BookTagValidator;
+import com.literature.russian_literature.books.db.BookRepository;
+import com.literature.russian_literature.tags.db.TagEntity;
+import com.literature.russian_literature.tags.db.TagMapper;
+import com.literature.russian_literature.tags.db.TagRepository;
+import com.literature.russian_literature.tags.util.TagNormalizer;
+import com.literature.russian_literature.tags.util.TagValidator;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
@@ -14,50 +15,52 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class BookTagService {
-    private static final Logger log = LoggerFactory.getLogger(BookTagService.class);
+public class TagService {
+    private static final Logger log = LoggerFactory.getLogger(TagService.class);
 
-    private final BookTagRepository repository;
-    private final BookTagMapper mapper;
-    private final BookTagValidator validator;
-    private final BookTagNormalizer normalizer;
+    private final TagRepository repository;
+    private final TagMapper mapper;
+    private final TagValidator validator;
+    private final TagNormalizer normalizer;
+    private final BookRepository bookRepository;
 
-    public BookTagService(BookTagRepository repository, BookTagMapper mapper,
-                          BookTagValidator validator, BookTagNormalizer normalizer) {
+    public TagService(TagRepository repository, TagMapper mapper,
+                      TagValidator validator, TagNormalizer normalizer, BookRepository bookRepository) {
         this.repository = repository;
         this.mapper = mapper;
         this.validator = validator;
         this.normalizer = normalizer;
+        this.bookRepository = bookRepository;
     }
 
-    public BookTag getBookTagById(Long id) {
-        BookTagEntity tagEntity = repository.findById(id)
+    public Tag getTagById(Long id) {
+        TagEntity tagEntity = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Тег с id = " + id + " не найден"));
         return mapper.toDomain(tagEntity);
     }
 
-    public List<BookTag> getAllBookTags() {
+    public List<Tag> getAllTags() {
         return repository.findAll().stream()
                 .map(mapper::toDomain)
                 .toList();
     }
 
-    public BookTag getBookTagByName(String name) {
+    public Tag getTagByName(String name) {
         return repository.findByName(name)
                 .map(mapper::toDomain)
                 .orElseThrow(() -> new EntityNotFoundException("Тег с названием '" + name + "' не найден"));
     }
 
-    public List<BookTag> getBookTagsByType(TagType type) {
+    public List<Tag> getTagsByType(TagType type) {
         return repository.findByType(type).stream()
                 .map(mapper::toDomain)
                 .toList();
     }
 
     @Transactional
-    public BookTag createBookTag(BookTag tagToCreate) {
+    public Tag createTag(Tag tagToCreate) {
         // Нормализация -> Валидация
-        BookTag normalizedTag = normalizer.normalizeBookTag(tagToCreate);
+        Tag normalizedTag = normalizer.normalizeTag(tagToCreate);
         validator.validateForCreate(normalizedTag);
 
         var entityToSave = mapper.toEntity(normalizedTag);
@@ -68,30 +71,36 @@ public class BookTagService {
     }
 
     @Transactional
-    public BookTag updateBookTag(Long id, BookTag tag) {
-        BookTagEntity existing = repository.findById(id)
+    public Tag updateTag(Long id, Tag tag) {
+        TagEntity existing = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Тег с id = " + id + " не найден"));
 
         // Нормализация -> Валидация
-        BookTag normalizedTag = normalizer.normalizeBookTag(tag);
+        Tag normalizedTag = normalizer.normalizeTag(tag);
         validator.validateForUpdate(id, normalizedTag);
 
         existing.setName(normalizedTag.name());
         existing.setType(normalizedTag.type());
-        BookTagEntity updated = repository.save(existing);
+        TagEntity updated = repository.save(existing);
         log.info("Обновлен тег: '{}' с id = {}", updated.getName(), updated.getId());
         return mapper.toDomain(updated);
     }
 
     @Transactional
-    public void deleteBookTag(Long id) {
-        BookTagEntity tag = repository.findById(id)
+    public void deleteTag(Long id) {
+        TagEntity tag = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Тег с id = " + id + " не найден"));
+
+        if (bookRepository.existsByTags_Id(id)) {
+            log.warn("Тег '{}' используется в книгах, но будет удален вместе со связями", tag.getName());
+            bookRepository.deleteAllTagLinks(id);
+        }
+
         repository.deleteById(id);
         log.info("Удален тег: '{}' с id = {}", tag.getName(), id);
     }
 
-    public boolean bookTagExists(String name) {
+    public boolean tagExists(String name) {
         return repository.existsByName(name);
     }
 }
