@@ -43,6 +43,7 @@ public class BookValidator {
         validateAuthorExists(book.authorId());
         validateTitleUniquenessOnUpdate(id, book.title(), book.authorId());
         validatePublicationYear(book.publicationYear());
+        globalValidator.validatePhotoUrl(book.coverUrl());
         validateGenres(book.genreIds());
         validateTags(book.tagIds());
     }

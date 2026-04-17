@@ -205,11 +205,6 @@ public class BookService {
         return bookSelectionService.getBooksForCategoryPage(category, pageable);
     }
 
-    public BookEntity getBookEntityById(Long id) {
-        return repository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Книга не найдена"));
-    }
-
     public String getBookFileUrlByFormat(Long bookId, BookFormat format) {
         BookFileEntity file = bookFileRepository.findByBookIdAndFormat(bookId, format)
                 .orElseThrow(() -> new EntityNotFoundException("Файл формата " + format + " не найден для книги id=" + bookId));
@@ -251,7 +246,7 @@ public class BookService {
             try {
                 cloudinaryService.deleteFile(file.getPublicId(), "raw");
                 log.info("Файл удалён из Cloudinary: {}", file.getPublicId());
-            } catch (Exception e) { // Не прерываем удаление из БД, только логируем
+            } catch (Exception e) { // Не прерываем удаление из БД
                 log.error("Ошибка при удалении файла из Cloudinary: {}", e.getMessage());
             }
         }

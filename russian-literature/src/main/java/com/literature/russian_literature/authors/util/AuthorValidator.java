@@ -1,6 +1,6 @@
 package com.literature.russian_literature.authors.util;
 
-import com.literature.russian_literature.authors.domain.Author;
+import com.literature.russian_literature.authors.domain.dto.Author;
 import com.literature.russian_literature.authors.db.AuthorRepository;
 import com.literature.russian_literature.util.GlobalValidator;
 
@@ -33,6 +33,7 @@ public class AuthorValidator {
         validateFullNameUniquenessOnUpdate(id, author.firstName(), author.lastName(), author.middleName());
         validateDates(author.birthDate(), author.deathDate());
         validateBiographyLength(author.biography());
+        globalValidator.validatePhotoUrl(author.photoUrl());
     }
 
     private void validateRequiredFields(Author author) {

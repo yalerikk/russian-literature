@@ -12,8 +12,6 @@ import java.util.Optional;
 public interface BookRatingRepository extends JpaRepository<BookRatingEntity, Long> {
     Optional<BookRatingEntity> findByBookIdAndUserId(Long bookId, Long userId);
 
-    List<BookRatingEntity> findByBookId(Long bookId);
-
     List<BookRatingEntity> findByUserId(Long userId);
 
     @Query("SELECT AVG(r.rating) FROM BookRatingEntity r WHERE r.book.id = :bookId")

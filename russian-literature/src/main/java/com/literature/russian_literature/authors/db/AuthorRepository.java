@@ -1,5 +1,6 @@
 package com.literature.russian_literature.authors.db;
 
+import com.literature.russian_literature.authors.domain.dto.AuthorForSelect;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -45,4 +46,7 @@ public interface AuthorRepository extends JpaRepository<AuthorEntity, Long> {
             "LOWER(REPLACE(a.lastName, 'ё', 'е')) LIKE LOWER(REPLACE(CONCAT('%', :query, '%'), 'ё', 'е')) OR " +
             "LOWER(REPLACE(a.middleName, 'ё', 'е')) LIKE LOWER(REPLACE(CONCAT('%', :query, '%'), 'ё', 'е'))")
     Page<AuthorEntity> searchByNormalizedName(@Param("query") String query, Pageable pageable);
+
+    @Query("SELECT new com.literature.russian_literature.authors.domain.dto.AuthorForSelect(a.id, a.lastName, a.firstName, a.middleName) FROM AuthorEntity a ORDER BY a.lastName, a.firstName")
+    List<AuthorForSelect> findAllForSelect();
 }

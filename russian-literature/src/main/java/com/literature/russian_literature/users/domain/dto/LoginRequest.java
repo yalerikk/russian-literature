@@ -1,4 +1,4 @@
-package com.literature.russian_literature.users.domain;
+package com.literature.russian_literature.users.domain.dto;
 
 import jakarta.validation.constraints.NotBlank;
 

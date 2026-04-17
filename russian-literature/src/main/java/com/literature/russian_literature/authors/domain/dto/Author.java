@@ -1,4 +1,4 @@
-package com.literature.russian_literature.authors.domain;
+package com.literature.russian_literature.authors.domain.dto;
 
 import jakarta.validation.constraints.*;
 import java.time.LocalDate;

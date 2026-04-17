@@ -1,8 +1,9 @@
 package com.literature.russian_literature.users.api;
 
-import com.literature.russian_literature.users.domain.User;
-import com.literature.russian_literature.users.domain.LoginRequest;
+import com.literature.russian_literature.users.domain.dto.User;
+import com.literature.russian_literature.users.domain.dto.LoginRequest;
 import com.literature.russian_literature.users.domain.UserService;
+import com.literature.russian_literature.users.domain.dto.UserResponse;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,50 +26,56 @@ public class UserController {
 
     // GET BY ID
     @GetMapping("/{id}")
-    public ResponseEntity<User> getUserById(
+    public ResponseEntity<UserResponse> getUserById(
             @PathVariable("id") Long id
     ) {
         log.info("Called getUserById by id={}", id);
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(userService.getUserById(id));
+        User user = userService.getUserById(id);
+        UserResponse response = new UserResponse(user.id(), user.username(), user.email(), user.role());
+        return ResponseEntity.ok(response);
     }
 
     // GET ALL
     @GetMapping()
-    public ResponseEntity<List<User>> getAllUsers() {
+    public ResponseEntity<List<UserResponse>> getAllUsers() {
         log.info("Called getAllUsers");
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(userService.getAllUsers());
+        List<User> users = userService.getAllUsers();
+        List<UserResponse> responses = users.stream()
+                .map(u -> new UserResponse(u.id(), u.username(), u.email(), u.role()))
+                .toList();
+        return ResponseEntity.ok(responses);
     }
 
     // REGISTER
     @PostMapping("/register")
-    public ResponseEntity<User> registerUser(
+    public ResponseEntity<UserResponse> registerUser(
             @Valid @RequestBody User userToCreate
     ) {
         log.info("Called registerUser");
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(userService.createUser(userToCreate));
+        User created = userService.createUser(userToCreate);
+        UserResponse response = new UserResponse(created.id(), created.username(), created.email(), created.role());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     // LOGIN
     @PostMapping("/login")
-    public ResponseEntity<User> loginUser(
+    public ResponseEntity<UserResponse> loginUser(
             @RequestBody LoginRequest loginRequest
     ) {
         log.info("Called loginUser for user: {}", loginRequest.login());
-        return ResponseEntity.ok(userService.loginUser(loginRequest));
+        User user = userService.loginUser(loginRequest);
+        UserResponse response = new UserResponse(user.id(), user.username(), user.email(), user.role());
+        return ResponseEntity.ok(response);
     }
 
     // EDIT
     @PutMapping("/{id}")
     public ResponseEntity<User> updateUser(
             @PathVariable("id") Long id,
-            @Valid @RequestBody User userToUpdate,
-            @RequestParam(defaultValue = "false") boolean isAdmin
+            @Valid @RequestBody User userToUpdate
     ) {
-        log.info("Called updateUser id={}, userToUpdate={}, isAdmin={}", id, userToUpdate, isAdmin);
-        var updated = userService.updateUser(id, userToUpdate, isAdmin);
+        log.info("Called updateUser id={}, userToUpdate={}", id, userToUpdate);
+        var updated = userService.updateUser(id, userToUpdate);
         return ResponseEntity.ok(updated);
     }
 

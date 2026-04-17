@@ -37,14 +37,6 @@ public class TagController {
         return ResponseEntity.ok(tagService.getAllTags());
     }
 
-    @GetMapping("/name/{name}")
-    public ResponseEntity<Tag> getTagByName(
-            @PathVariable String name
-    ) {
-        log.info("Called getTagByName by name={}", name);
-        return ResponseEntity.ok(tagService.getTagByName(name));
-    }
-
     @GetMapping("/by-type")
     public ResponseEntity<List<Tag>> getTagsByType(
             @RequestParam TagType type

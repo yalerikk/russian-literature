@@ -38,14 +38,6 @@ public class GenreController {
         return ResponseEntity.ok(genreService.getAllGenres());
     }
 
-    @GetMapping("/name/{name}")
-    public ResponseEntity<Genre> getGenreByName(
-            @PathVariable String name
-    ) {
-        log.info("Called getGenreByName by name={}", name);
-        return ResponseEntity.ok(genreService.getGenreByName(name));
-    }
-
     @PostMapping
     public ResponseEntity<Genre> createGenre(
             @Valid @RequestBody Genre genreToCreate

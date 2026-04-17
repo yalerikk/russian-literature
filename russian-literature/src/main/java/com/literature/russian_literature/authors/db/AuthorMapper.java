@@ -1,6 +1,6 @@
 package com.literature.russian_literature.authors.db;
 
-import com.literature.russian_literature.authors.domain.Author;
+import com.literature.russian_literature.authors.domain.dto.Author;
 import org.springframework.stereotype.Component;
 
 @Component

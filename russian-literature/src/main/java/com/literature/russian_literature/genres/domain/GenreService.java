@@ -45,15 +45,8 @@ public class GenreService {
                 .toList();
     }
 
-    public Genre getGenreByName(String name) {
-        return repository.findByName(name)
-                .map(mapper::toDomain)
-                .orElseThrow(() -> new EntityNotFoundException("Жанр с названием '" + name + "' не найден"));
-    }
-
     @Transactional
     public Genre createGenre(Genre genreToCreate) {
-        // Нормализация -> Валидация
         Genre normalizedGenre = normalizer.normalizeGenre(genreToCreate);
         validator.validateForCreate(normalizedGenre);
 
@@ -68,7 +61,6 @@ public class GenreService {
         GenreEntity existing = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Жанр с id = " + id + " не найден"));
 
-        // Нормализация -> Валидация
         Genre normalizedGenre = normalizer.normalizeGenre(genre);
         validator.validateForUpdate(id, normalizedGenre);
 

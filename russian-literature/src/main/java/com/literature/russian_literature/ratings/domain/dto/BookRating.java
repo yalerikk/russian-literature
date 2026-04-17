@@ -1,4 +1,4 @@
-package com.literature.russian_literature.ratings.domain;
+package com.literature.russian_literature.ratings.domain.dto;
 
 import jakarta.validation.constraints.*;
 import java.time.LocalDateTime;
@@ -9,7 +9,7 @@ public record BookRating(
         @NotNull(message = "ID книги обязателен")
         Long bookId,
 
-        @NotNull(message = "ID пользователя обязателен")
+        //@NotNull(message = "ID пользователя обязателен")
         Long userId,
 
         @NotNull(message = "Оценка обязательна")
@@ -17,7 +17,6 @@ public record BookRating(
         @Max(value = 5, message = "Оценка должна быть от 1 до 5")
         Integer rating,
 
-        // created и updated не передаются от клиента
         @Null LocalDateTime createdAt,
         @Null LocalDateTime updatedAt
 ) {

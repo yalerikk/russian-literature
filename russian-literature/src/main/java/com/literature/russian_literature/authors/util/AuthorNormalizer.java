@@ -1,6 +1,6 @@
 package com.literature.russian_literature.authors.util;
 
-import com.literature.russian_literature.authors.domain.Author;
+import com.literature.russian_literature.authors.domain.dto.Author;
 import com.literature.russian_literature.util.StringNormalizer;
 import org.springframework.stereotype.Component;
 

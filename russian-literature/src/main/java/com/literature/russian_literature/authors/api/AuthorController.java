@@ -1,8 +1,9 @@
 package com.literature.russian_literature.authors.api;
 
-import com.literature.russian_literature.authors.domain.Author;
+import com.literature.russian_literature.authors.domain.dto.Author;
 import com.literature.russian_literature.authors.domain.AuthorService;
 
+import com.literature.russian_literature.authors.domain.dto.AuthorForSelect;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +43,11 @@ public class AuthorController {
                 .body(authorService.getAllAuthors());
     }
 
+    @GetMapping("/for-select")
+    public List<AuthorForSelect> getAuthorsForSelect() {
+        return authorService.getAuthorsForSelect();
+    }
+
     // POST
     @PostMapping
     public ResponseEntity<Author> createAuthor(
@@ -73,28 +79,4 @@ public class AuthorController {
         return ResponseEntity.ok()
                 .build();
     }
-
-    /*
-    // Получить всех авторов для выпадающего списка
-    @GetMapping("/authors/for-select")
-    public List<AuthorForSelect> getAuthorsForSelect() {
-        return authorService.getAuthorsForSelect();
-    }
-
-    // Поиск авторов по части ФИО (для автодополнения)
-    @GetMapping("/authors/search")
-    public List<AuthorForSelect> searchAuthors(
-            @RequestParam String query
-    ) {
-        return authorService.searchAuthors(query);
-    }
-
-    // Получить автора с книгами (для страницы автора)
-    @GetMapping("/authors/{id}/with-books")
-    public AuthorWithBooksResponse getAuthorWithBooks(
-            @PathVariable Long id
-    ) {
-        return authorService.getAuthorWithBooks(id);
-    }
-     */
 }

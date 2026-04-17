@@ -5,6 +5,7 @@ import com.literature.russian_literature.books.db.BookRepository;
 import com.literature.russian_literature.ratings.db.BookRatingEntity;
 import com.literature.russian_literature.ratings.db.BookRatingMapper;
 import com.literature.russian_literature.ratings.db.BookRatingRepository;
+import com.literature.russian_literature.ratings.domain.dto.BookRating;
 import com.literature.russian_literature.ratings.util.BookRatingValidator;
 import com.literature.russian_literature.users.db.UserEntity;
 import com.literature.russian_literature.users.db.UserRepository;
@@ -47,14 +48,6 @@ public class BookRatingService {
                 .map(mapper::toDomain);
     }
 
-    // Получить все оценки книги
-    public List<BookRating> getBookRatings(Long bookId) {
-        validator.validateBookExists(bookId);
-        return ratingRepository.findByBookId(bookId).stream()
-                .map(mapper::toDomain)
-                .collect(Collectors.toList());
-    }
-
     // Получить все оценки пользователя
     public List<BookRating> getUserRatings(Long userId) {
         validator.validateUserExists(userId);
@@ -77,13 +70,11 @@ public class BookRatingService {
 
         BookRatingEntity entity;
         if (existing.isPresent()) {
-            // Обновляем существующую оценку
             entity = existing.get();
             entity.setRating(rating.rating());
             entity.setUpdatedAt(LocalDateTime.now());
             log.info("Обновлена оценка для книги id={} от пользователя id={}: {}", rating.bookId(), rating.userId(), rating.rating());
         } else {
-            // Создаём новую
             entity = mapper.toEntity(rating, book, user);
             entity.setCreatedAt(LocalDateTime.now());
             entity.setUpdatedAt(LocalDateTime.now());

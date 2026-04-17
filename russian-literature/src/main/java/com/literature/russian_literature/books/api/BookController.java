@@ -46,48 +46,6 @@ public class BookController {
         return ResponseEntity.ok(bookService.getAllBooks());
     }
 
-    // GET BY AUTHOR
-    @GetMapping("/author/{authorId}")
-    public ResponseEntity<Page<BookForCatalogDto>> getBooksByAuthor(
-            @PathVariable Long authorId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
-    ) {
-        log.info("Called getBooksByAuthor by authorId={}", authorId);
-        Pageable pageable = PageRequest.of(page, size);
-        Page<BookEntity> bookPage = bookService.getBooksByAuthorPage(authorId, pageable);
-        Page<BookForCatalogDto> dtoPage = bookPage.map(bookForCatalogMapper::toDto);
-        return ResponseEntity.ok(dtoPage);
-    }
-
-    // GET BY GENRE
-    @GetMapping("/genre/{genreId}")
-    public ResponseEntity<Page<BookForCatalogDto>> getBooksByGenre(
-            @PathVariable Long genreId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
-    ) {
-        log.info("Called getBooksByGenre by genreId={}", genreId);
-        Pageable pageable = PageRequest.of(page, size);
-        Page<BookEntity> bookPage = bookService.getBooksByGenrePage(genreId, pageable);
-        Page<BookForCatalogDto> dtoPage = bookPage.map(bookForCatalogMapper::toDto);
-        return ResponseEntity.ok(dtoPage);
-    }
-
-    // GET BY TAG
-    @GetMapping("/tag/{tagId}")
-    public ResponseEntity<Page<BookForCatalogDto>> getBooksByTag(
-            @PathVariable Long tagId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
-    ) {
-        log.info("Called getBooksByTag by tagId={}", tagId);
-        Pageable pageable = PageRequest.of(page, size);
-        Page<BookEntity> bookPage = bookService.getBooksByTagPage(tagId, pageable);
-        Page<BookForCatalogDto> dtoPage = bookPage.map(bookForCatalogMapper::toDto);
-        return ResponseEntity.ok(dtoPage);
-    }
-
     // POST
     @PostMapping
     public ResponseEntity<Book> createBook(

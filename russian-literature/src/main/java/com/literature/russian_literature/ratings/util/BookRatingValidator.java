@@ -2,7 +2,7 @@ package com.literature.russian_literature.ratings.util;
 
 import com.literature.russian_literature.books.db.BookRepository;
 import com.literature.russian_literature.ratings.db.BookRatingRepository;
-import com.literature.russian_literature.ratings.domain.BookRating;
+import com.literature.russian_literature.ratings.domain.dto.BookRating;
 import com.literature.russian_literature.users.db.UserRepository;
 import org.springframework.stereotype.Component;
 

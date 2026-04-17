@@ -45,12 +45,6 @@ public class TagService {
                 .toList();
     }
 
-    public Tag getTagByName(String name) {
-        return repository.findByName(name)
-                .map(mapper::toDomain)
-                .orElseThrow(() -> new EntityNotFoundException("Тег с названием '" + name + "' не найден"));
-    }
-
     public List<Tag> getTagsByType(TagType type) {
         return repository.findByType(type).stream()
                 .map(mapper::toDomain)

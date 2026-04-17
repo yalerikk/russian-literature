@@ -1,9 +1,12 @@
 package com.literature.russian_literature.users.domain;
 
+import com.literature.russian_literature.security.SecurityUtils;
 import com.literature.russian_literature.users.db.UserEntity;
 import com.literature.russian_literature.users.db.UserMapper;
 import com.literature.russian_literature.users.db.UserRepository;
 
+import com.literature.russian_literature.users.domain.dto.LoginRequest;
+import com.literature.russian_literature.users.domain.dto.User;
 import com.literature.russian_literature.users.util.UserNormalizer;
 import com.literature.russian_literature.users.util.UserValidator;
 import jakarta.persistence.EntityNotFoundException;
@@ -62,7 +65,6 @@ public class UserService {
     public User createUser(
             User userToCreate
     ) {
-        // Нормализация перед проверками
         User normalizedUser = userNormalizer.normalizeUser(userToCreate);
         userValidator.validateForCreate(normalizedUser);
 
@@ -79,12 +81,10 @@ public class UserService {
     public User loginUser(
             LoginRequest loginRequest
     ) {
-        // Пытаемся найти по username, затем по email
         UserEntity userEntity = repository.findByUsername(loginRequest.login())
                 .orElseGet(() -> repository.findByEmail(loginRequest.login())
                         .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден")));
 
-        // Проверяем пароль
         if (!passwordEncoder.matches(loginRequest.password(), userEntity.getPassword())) {
             throw new IllegalArgumentException("Неверный пароль");
         }
@@ -94,58 +94,77 @@ public class UserService {
     }
 
     @Transactional
-    public User updateUser(
-            Long id,
-            User userUpdate,
-            boolean isAdmin
-    ) {
+    public User updateUser(Long id, User userUpdate) {
+        // 1. Получаем текущего пользователя из SecurityContext
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+        UserEntity currentUser = repository.findById(currentUserId)
+                .orElseThrow(() -> new EntityNotFoundException("Текущий пользователь не найден"));
+        boolean isAdmin = currentUser.getRole() == UserRole.ADMIN;
+
+        // 2. Проверяем, что пользователь может редактировать этот профиль
+        if (!isAdmin && !currentUserId.equals(id)) {
+            throw new IllegalStateException("Вы можете редактировать только свой профиль");
+        }
+
+        // 3. Загружаем обновляемого пользователя
         UserEntity existing = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
 
-        // Нормализуем данные перед валидацией
         User normalizedUpdate = userNormalizer.normalizeUser(userUpdate);
-
-        // Валидация данных
         userValidator.validateForUpdate(id, normalizedUpdate);
 
-        // Проверяем уникальность username, если он меняется
+        // 4. Обновляем поля
         if (normalizedUpdate.username() != null && !normalizedUpdate.username().equals(existing.getUsername())) {
             existing.setUsername(normalizedUpdate.username());
         }
-
-        // Проверяем уникальность email, если он меняется
         if (normalizedUpdate.email() != null && !normalizedUpdate.email().equals(existing.getEmail())) {
             existing.setEmail(normalizedUpdate.email());
         }
-
-        // Обновляем пароль, если он предоставлен
         if (normalizedUpdate.password() != null) {
             existing.setPassword(passwordEncoder.encode(normalizedUpdate.password()));
         }
-
-        // Обновляем роль, если это админ и роль предоставлена
+        // Обновление роли – только для администратора
         if (isAdmin && normalizedUpdate.role() != null) {
             existing.setRole(normalizedUpdate.role());
             log.info("Администратор обновил роль пользователя с id={} на {}", id, normalizedUpdate.role());
         }
 
         UserEntity updated = repository.save(existing);
-        log.info("Обновлен пользователь: '{}' с id={}", userUpdate.username(), id);
+        log.info("Обновлен пользователь: '{}' с id={}", updated.getUsername(), id);
         return mapper.toDomain(updated);
     }
 
-    public void deleteUser(
-            Long id
-    ) {
-        var user = repository.findById(id)
+    @Transactional
+    public void deleteUser(Long id) {
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+        UserEntity currentUser = repository.findById(currentUserId)
+                .orElseThrow(() -> new EntityNotFoundException("Текущий пользователь не найден"));
+        boolean isAdmin = currentUser.getRole() == UserRole.ADMIN;
+
+        if (!isAdmin && !currentUserId.equals(id)) {
+            throw new IllegalStateException("Вы можете удалить только свой аккаунт");
+        }
+
+        UserEntity user = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь с id = " + id + " не найден"));
 
-        if (user.getRole().equals(UserRole.ADMIN)) {
-            throw new IllegalStateException("Невозможно удалить администратора");
+        if (user.getRole() == UserRole.ADMIN) {
+            long adminCount = repository.countByRole(UserRole.ADMIN);
+            if (adminCount <= 1) {
+                throw new IllegalStateException("Невозможно удалить последнего администратора");
+            }
+            if (!isAdmin) {
+                throw new IllegalStateException("Только администратор может удалить другого администратора");
+            }
         }
 
         repository.deleteById(id);
         log.info("Пользователь с id = {} успешно удален", id);
+    }
+
+    public UserEntity getUserEntityById(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
     }
 
     // Проверка существования пользователя

@@ -1,7 +1,7 @@
 package com.literature.russian_literature.users.util;
 
 import com.literature.russian_literature.users.db.UserRepository;
-import com.literature.russian_literature.users.domain.User;
+import com.literature.russian_literature.users.domain.dto.User;
 import com.literature.russian_literature.util.GlobalValidator;
 import org.springframework.stereotype.Component;
 

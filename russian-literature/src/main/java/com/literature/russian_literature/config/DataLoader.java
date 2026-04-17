@@ -9,8 +9,12 @@ import com.literature.russian_literature.genres.db.GenreRepository;
 import com.literature.russian_literature.tags.db.TagEntity;
 import com.literature.russian_literature.tags.db.TagRepository;
 import com.literature.russian_literature.tags.domain.TagType;
+import com.literature.russian_literature.users.db.UserEntity;
+import com.literature.russian_literature.users.db.UserRepository;
+import com.literature.russian_literature.users.domain.UserRole;
 
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -24,13 +28,18 @@ public class DataLoader implements CommandLineRunner {
     private final GenreRepository genreRepository;
     private final TagRepository tagRepository;
     private final BookRepository bookRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public DataLoader(AuthorRepository authorRepository, GenreRepository genreRepository,
-                      TagRepository tagRepository, BookRepository bookRepository) {
+                      TagRepository tagRepository, BookRepository bookRepository,
+                      UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.authorRepository = authorRepository;
         this.genreRepository = genreRepository;
         this.tagRepository = tagRepository;
         this.bookRepository = bookRepository;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -41,6 +50,14 @@ public class DataLoader implements CommandLineRunner {
         }
 
         System.out.println("🔄 Начало загрузки тестовых данных...");
+
+        // ----- Пользователи -----
+        if (userRepository.count() == 0) {
+            var admin = new UserEntity(null, "admin", "admin@gmail.com", passwordEncoder.encode("admin123"), UserRole.ADMIN);
+            var reader = new UserEntity(null, "user", "user@mail.ru", passwordEncoder.encode("user123"), UserRole.READER);
+            userRepository.saveAll(List.of(admin, reader));
+            System.out.println("👥 Добавлены тестовые пользователи: admin/admin123, user/user123");
+        }
 
         // ----- Жанры -----
         List<GenreEntity> genres = List.of(
@@ -174,10 +191,8 @@ public class DataLoader implements CommandLineRunner {
         TagEntity readingExtra = tags.get(8);     // Дополнительное чтение
 
         LocalDateTime now = LocalDateTime.now();
-        String dummyFileUrl = "https://example.com/book.pdf";
 
-        // ----- Книги с правильными тегами (согласно программам 10–11 классов) -----
-        // ----- Книги (без файлов – только обложки и метаданные) -----
+        // ----- Книги -----
         List<BookEntity> books = List.of(
                 createBook(null, "Евгений Онегин", 1833,
                         "Роман в стихах Александра Пушкина...",

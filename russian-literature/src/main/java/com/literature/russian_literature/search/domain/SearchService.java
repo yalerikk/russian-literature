@@ -35,8 +35,7 @@ public class SearchService {
                     "BOOK",
                     book.getId(),
                     book.getTitle(),
-                    authorName,
-                    book.getCoverUrl()
+                    authorName
             ));
         }
 
@@ -52,8 +51,7 @@ public class SearchService {
                     "AUTHOR",
                     author.getId(),
                     author.getFullName(),
-                    lifespan,
-                    author.getPhotoUrl()
+                    lifespan
             ));
         }
 
