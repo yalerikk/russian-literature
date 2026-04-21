@@ -4,6 +4,12 @@ import com.literature.russian_literature.catalog.db.CatalogCategoryEntity;
 import com.literature.russian_literature.catalog.db.CatalogCategoryMapper;
 import com.literature.russian_literature.catalog.db.CatalogCategoryRepository;
 import com.literature.russian_literature.catalog.util.CatalogCategoryValidator;
+import com.literature.russian_literature.tags.db.TagEntity;
+import com.literature.russian_literature.tags.db.TagRepository;
+import com.literature.russian_literature.tags.domain.TagType;
+import com.literature.russian_literature.util.StringNormalizer;
+import com.literature.russian_literature.util.TranslitUtil;
+
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
@@ -11,7 +17,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class CatalogCategoryService {
@@ -20,15 +30,29 @@ public class CatalogCategoryService {
     private final CatalogCategoryRepository repository;
     private final CatalogCategoryMapper mapper;
     private final CatalogCategoryValidator validator;
+    private final TagRepository tagRepository;
+    private final StringNormalizer normalizer;
 
     @Autowired
     public CatalogCategoryService(
-            CatalogCategoryRepository repository,
-            CatalogCategoryMapper mapper,
-            CatalogCategoryValidator validator) {
+            CatalogCategoryRepository repository, CatalogCategoryMapper mapper,
+            CatalogCategoryValidator validator, TagRepository tagRepository, StringNormalizer normalizer) {
         this.repository = repository;
         this.mapper = mapper;
         this.validator = validator;
+        this.tagRepository = tagRepository;
+        this.normalizer = normalizer;
+    }
+
+    public List<CatalogCategory> getAllCategories() {
+        return repository.findAll().stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    public List<CatalogCategory> getCategoriesFiltered(Boolean isActive) {
+        if (isActive == null) return getAllCategories();
+        return repository.findByIsActive(isActive).stream().map(mapper::toDomain).toList();
     }
 
     public CatalogCategory getCategoryById(Long id) {
@@ -47,12 +71,6 @@ public class CatalogCategoryService {
         return mapper.toDomain(entity);
     }
 
-    public List<CatalogCategory> getAllCategories() {
-        return repository.findAll().stream()
-                .map(mapper::toDomain)
-                .toList();
-    }
-
     public List<CatalogCategory> getActiveCategories() {
         return repository.findByIsActiveTrueOrderByDisplayOrderAsc().stream()
                 .map(mapper::toDomain)
@@ -60,66 +78,62 @@ public class CatalogCategoryService {
     }
 
     @Transactional
-    public CatalogCategory createCategory(CatalogCategory category) {
-        validator.validateCreate(category);
+    public CatalogCategory createCustomCategory(Set<Long> tagIds) {
+        validator.validateCreate(tagIds);
 
-        // Если порядок не указан, ставим в конец
-        CatalogCategory categoryToSave = category;
-        if (category.displayOrder() == null) {
-            Integer maxOrder = repository.findMaxDisplayOrder();
-            int newOrder = maxOrder != null ? maxOrder + 1 : 0;
-            categoryToSave = new CatalogCategory(
-                    category.id(),
-                    category.name(),
-                    category.code(),
-                    newOrder,
-                    category.isActive(),
-                    category.booksToShow(),
-                    category.criteriaType(),
-                    category.genreId(),
-                    category.authorId(),
-                    category.minPublicationYear(),
-                    category.maxPublicationYear(),
-                    category.minRating(),
-                    category.daysInterval(),
-                    category.customQuery(),
-                    LocalDateTime.now(),
-                    LocalDateTime.now()
-            );
+        if (tagRepository.countExistingTagsByIds(tagIds) != tagIds.size()) {
+            throw new IllegalArgumentException("Некоторые теги не найдены, проверьте корректность вводимых данных");
         }
 
-        CatalogCategoryEntity entity = mapper.toEntity(categoryToSave);
+        Set<TagEntity> tags = new HashSet<>(tagRepository.findAllById(tagIds));
+        if (tags.isEmpty()) throw new IllegalArgumentException("Теги не найдены");
+
+        // Проверка, что нет двух тегов одного типа
+        Set<TagType> types = tags.stream().map(TagEntity::getType).collect(Collectors.toSet());
+        if (types.size() != tags.size()) {
+            throw new IllegalArgumentException("В категории не может быть двух тегов одного типа (например, два класса или два уровня)");
+        }
+
+        String name = generateNameFromTags(tags);
+        String code = generateCodeFromTags(tags);
+
+        validator.validateNameAndCodeInCreate(code, name);
+
+        Integer maxOrder = repository.findMaxDisplayOrder();
+        int displayOrder = (maxOrder == null ? 0 : maxOrder + 1);
+
+        CatalogCategoryEntity entity = new CatalogCategoryEntity();
+        entity.setName(name);
+        entity.setCode(code);
+        entity.setDisplayOrder(displayOrder);
+        entity.setIsActive(true);
+        entity.setBooksToShow(7);
+        entity.setCriteriaType("CUSTOM");
+        entity.setTags(tags);
         entity.setCreatedAt(LocalDateTime.now());
         entity.setUpdatedAt(LocalDateTime.now());
 
         CatalogCategoryEntity saved = repository.save(entity);
-        log.info("Создана категория каталога: '{}' (код: {})", saved.getName(), saved.getCode());
+        log.info("Создана кастомная категория: {}", saved.getName());
         return mapper.toDomain(saved);
     }
 
     @Transactional
-    public CatalogCategory updateCategory(Long id, CatalogCategory category) {
+    public CatalogCategory updateCategory(Long id, String name, Boolean isActive) {
         CatalogCategoryEntity existing = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Категория каталога с id = " + id + " не найдена"
                 ));
 
-        validator.validateUpdate(id, category);
+        if (existing.getCriteriaType().equals("NEW") || existing.getCriteriaType().equals("POPULAR") || existing.getCriteriaType().equals("BY_PERIOD")) {
+            throw new IllegalArgumentException("Базовые категории нельзя редактировать");
+        }
 
-        // Обновляем поля
-        existing.setName(category.name());
-        existing.setCode(category.code());
-        existing.setDisplayOrder(category.displayOrder());
-        existing.setIsActive(category.isActive());
-        existing.setBooksToShow(category.booksToShow());
-        existing.setCriteriaType(category.criteriaType());
-        existing.setGenreId(category.genreId());
-        existing.setAuthorId(category.authorId());
-        existing.setMinPublicationYear(category.minPublicationYear());
-        existing.setMaxPublicationYear(category.maxPublicationYear());
-        existing.setMinRating(category.minRating());
-        existing.setDaysInterval(category.daysInterval());
-        existing.setCustomQuery(category.customQuery());
+        String normalizedName = normalizer.normalizeName(name);
+        validator.validateUpdate(id, normalizedName, isActive);
+
+        if (normalizedName != null) existing.setName(normalizedName);
+        if (isActive != null) existing.setIsActive(isActive);
         existing.setUpdatedAt(LocalDateTime.now());
 
         CatalogCategoryEntity updated = repository.save(existing);
@@ -134,22 +148,32 @@ public class CatalogCategoryService {
                         "Категория каталога с id = " + id + " не найдена"
                 ));
 
+        if (category.getCriteriaType().equals("NEW") || category.getCriteriaType().equals("POPULAR") || category.getCriteriaType().equals("BY_PERIOD")) {
+            throw new IllegalArgumentException("Нельзя удалить базовую категорию");
+        }
+
         repository.deleteById(id);
         log.info("Удалена категория каталога: '{}' (id: {})", category.getName(), id);
     }
 
-    @Transactional
-    public void reorderCategories(List<Long> categoryIdsInOrder) {
-        for (int i = 0; i < categoryIdsInOrder.size(); i++) {
-            Long categoryId = categoryIdsInOrder.get(i);
-            CatalogCategoryEntity category = repository.findById(categoryId)
-                    .orElseThrow(() -> new EntityNotFoundException(
-                            "Категория каталога с id = " + categoryId + " не найдена"
-                    ));
-            category.setDisplayOrder(i);
-            category.setUpdatedAt(LocalDateTime.now());
-            repository.save(category);
-        }
-        log.info("Изменен порядок категорий каталога");
+    private String generateNameFromTags(Set<TagEntity> tags) {
+        // Сортировка по типу тега: GRADE, LEVEL, CATEGORY, READING_TYPE
+        String raw = tags.stream()
+                .sorted(Comparator.comparingInt(t -> t.getType().ordinal()))
+                .map(t -> {
+                    String name = t.getName();
+                    if (Character.isDigit(name.charAt(0))) return name;
+                    return name.substring(0, 1).toUpperCase() + name.substring(1).toLowerCase();
+                })
+                .collect(Collectors.joining(", "));
+        if (raw.isEmpty()) return "";
+        return Character.toUpperCase(raw.charAt(0)) + raw.substring(1).toLowerCase();
+    }
+
+    private String generateCodeFromTags(Set<TagEntity> tags) {
+        return tags.stream()
+                .sorted(Comparator.comparingInt(t -> t.getType().ordinal()))
+                .map(t -> TranslitUtil.translit(t.getName()))
+                .collect(Collectors.joining("_"));
     }
 }

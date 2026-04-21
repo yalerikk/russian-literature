@@ -1,5 +1,7 @@
 package com.literature.russian_literature.catalog.api;
 
+import com.literature.russian_literature.catalog.api.dto.CreateCustomCategoryDto;
+import com.literature.russian_literature.catalog.api.dto.UpdateCustomCategoryDto;
 import com.literature.russian_literature.catalog.domain.CatalogCategory;
 import com.literature.russian_literature.catalog.domain.CatalogCategoryService;
 import jakarta.validation.Valid;
@@ -21,24 +23,23 @@ public class CatalogCategoryController {
         this.categoryService = categoryService;
     }
 
+    // GET ALL - FOR ADMIN with filter by active status
     @GetMapping
-    public ResponseEntity<List<CatalogCategory>> getAllCategories() {
-        log.info("Called getAllCategories");
-        return ResponseEntity.ok(categoryService.getAllCategories());
+    public ResponseEntity<List<CatalogCategory>> getAllCategories(
+            @RequestParam(required = false) Boolean isActive
+    ) {
+        log.info("Called getAllCategories with isActive={}", isActive);
+        return ResponseEntity.ok(categoryService.getCategoriesFiltered(isActive));
     }
 
-    @GetMapping("/active")
-    public ResponseEntity<List<CatalogCategory>> getActiveCategories() {
-        log.info("Called getActiveCategories");
-        return ResponseEntity.ok(categoryService.getActiveCategories());
-    }
-
+    // GET BY ID - FOR ADMIN
     @GetMapping("/{id}")
     public ResponseEntity<CatalogCategory> getCategoryById(@PathVariable Long id) {
         log.info("Called getCategoryById by id={}", id);
         return ResponseEntity.ok(categoryService.getCategoryById(id));
     }
 
+    // GET BY CODE - FOR ALL
     @GetMapping("/code/{code}")
     public ResponseEntity<CatalogCategory> getCategoryByCode(@PathVariable String code) {
         log.info("Called getCategoryByCode by code={}", code);
@@ -46,31 +47,27 @@ public class CatalogCategoryController {
     }
 
     @PostMapping
-    public ResponseEntity<CatalogCategory> createCategory(@Valid @RequestBody CatalogCategory category) {
+    public ResponseEntity<CatalogCategory> createCustomCategory(@Valid @RequestBody CreateCustomCategoryDto request) {
         log.info("Called createCategory");
+        CatalogCategory created = categoryService.createCustomCategory(request.tagIds());
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(categoryService.createCategory(category));
+                .body(created);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<CatalogCategory> updateCategory(
             @PathVariable Long id,
-            @Valid @RequestBody CatalogCategory category) {
+            @Valid @RequestBody UpdateCustomCategoryDto request
+    ) {
         log.info("Called updateCategory id={}", id);
-        return ResponseEntity.ok(categoryService.updateCategory(id, category));
+        CatalogCategory updated = categoryService.updateCategory(id, request.name(), request.isActive());
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
         log.info("Called deleteCategory id={}", id);
         categoryService.deleteCategory(id);
-        return ResponseEntity.ok().build();
-    }
-
-    @PostMapping("/reorder")
-    public ResponseEntity<Void> reorderCategories(@RequestBody List<Long> categoryIdsInOrder) {
-        log.info("Called reorderCategories");
-        categoryService.reorderCategories(categoryIdsInOrder);
         return ResponseEntity.ok().build();
     }
 }

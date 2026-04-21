@@ -14,4 +14,6 @@ public record BookForCatalogDto(
         LocalDateTime createdAt,
         Double rating, // Новое поле
         Integer ratingCount // Новое поле
-) {}
+) {
+
+}

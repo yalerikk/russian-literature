@@ -2,10 +2,17 @@ package com.literature.russian_literature.catalog.db;
 
 import com.literature.russian_literature.books.db.BookEntity;
 import com.literature.russian_literature.catalog.api.dto.BookForCatalogDto;
+import com.literature.russian_literature.ratings.domain.BookRatingService;
 import org.springframework.stereotype.Component;
 
 @Component
 public class BookForCatalogMapper {
+    private final BookRatingService ratingService;
+
+    public BookForCatalogMapper(BookRatingService ratingService) {
+        this.ratingService = ratingService;
+    }
+
     public BookForCatalogDto toDto(BookEntity book) {
         String authorFullName = "";
         String authorShortName = "";
@@ -13,6 +20,11 @@ public class BookForCatalogMapper {
             authorFullName = book.getAuthor().getFullName();
             authorShortName = book.getAuthor().getShortName();
         }
+
+        var summary = ratingService.getBookRatingSummary(book.getId());
+        Double rating = summary.averageRating();
+        Integer ratingCount = summary.ratingCount();
+
         return new BookForCatalogDto(
                 book.getId(),
                 book.getTitle(),
@@ -23,8 +35,8 @@ public class BookForCatalogMapper {
                 authorShortName,
                 book.getCoverUrl(),
                 book.getCreatedAt(),
-                null, // рейтинг
-                null  // кол-во оценок
+                rating,
+                ratingCount
         );
     }
 }

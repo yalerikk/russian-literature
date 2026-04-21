@@ -2,6 +2,7 @@ package com.literature.russian_literature.catalog.domain;
 
 import jakarta.validation.constraints.*;
 import java.time.LocalDateTime;
+import java.util.Set;
 
 public record CatalogCategory(
         @Null Long id,
@@ -11,31 +12,22 @@ public record CatalogCategory(
         String name,
 
         @NotBlank(message = "Код категории обязателен")
-        @Pattern(regexp = "^[a-z_]+$", message = "Код должен содержать только строчные латинские буквы и подчеркивания")
+        @Pattern(regexp = "^[a-z0-9_]+$", message = "Код должен содержать только строчные латинские буквы, цифры и подчеркивания")
         String code,
 
-        @NotNull(message = "Порядок отображения обязателен")
-        @Min(value = 0, message = "Порядок отображения не может быть отрицательным")
         Integer displayOrder,
-
-        @NotNull(message = "Статус активности обязателен")
         Boolean isActive,
-
-        @NotNull(message = "Количество книг для отображения обязательно")
-        @Min(value = 1, message = "Должна отображаться хотя бы 1 книга")
-        @Max(value = 20, message = "Нельзя отображать более 20 книг")
         Integer booksToShow,
 
         @NotBlank(message = "Тип критерия обязателен")
         String criteriaType,
 
-        Long genreId,
-        Long authorId,
         Integer minPublicationYear,
         Integer maxPublicationYear,
         Double minRating,
         Integer daysInterval,
-        String customQuery,
+
+        Set<Long> tagIds,
 
         @Null LocalDateTime createdAt,
         @Null LocalDateTime updatedAt
@@ -43,8 +35,6 @@ public record CatalogCategory(
     public enum CriteriaType {
         NEW,           // Новинки (по дате добавления)
         POPULAR,       // Популярные (по рейтингу/просмотрам)
-        BY_GENRE,      // По жанру
-        BY_AUTHOR,     // По автору
         BY_PERIOD,     // По периоду
         CUSTOM         // Кастомная выборка
     }

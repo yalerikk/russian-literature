@@ -6,4 +6,6 @@ public record CatalogPageDto(
         List<CatalogCategoryWithBooksDto> categories,
         int totalCategories,
         boolean hasMore
-) {}
+) {
+
+}

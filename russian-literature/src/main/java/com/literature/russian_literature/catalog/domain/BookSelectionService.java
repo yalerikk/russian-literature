@@ -3,10 +3,12 @@ package com.literature.russian_literature.catalog.domain;
 import com.literature.russian_literature.books.db.BookEntity;
 import com.literature.russian_literature.books.db.BookRepository;
 import com.literature.russian_literature.catalog.api.dto.BookForCatalogDto;
+import com.literature.russian_literature.catalog.db.BookForCatalogMapper;
 import com.literature.russian_literature.ratings.domain.BookRatingService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -15,11 +17,11 @@ import java.util.stream.Collectors;
 @Service
 public class BookSelectionService {
     private final BookRepository bookRepository;
-    private final BookRatingService ratingService;
+    private final BookForCatalogMapper mapper;
 
-    public BookSelectionService(BookRepository bookRepository, BookRatingService ratingService) {
+    public BookSelectionService(BookRepository bookRepository, BookRatingService ratingService, BookForCatalogMapper mapper) {
         this.bookRepository = bookRepository;
-        this.ratingService = ratingService;
+        this.mapper = mapper;
     }
 
     // Для главной страницы – первые booksToShow книг (List)
@@ -33,17 +35,14 @@ public class BookSelectionService {
             case POPULAR:
                 books = getPopularBooks(category);
                 break;
-            case BY_GENRE:
-                books = getBooksByGenre(category);
-                break;
-            case BY_AUTHOR:
-                books = getBooksByAuthor(category);
-                break;
             case BY_PERIOD:
                 books = getBooksByPeriod(category);
                 break;
             case CUSTOM:
-                books = getBooksByCustomQuery(category);
+                // Используем спецификацию для CUSTOM
+                Specification<BookEntity> spec = buildSpecificationFromCustomCategory(category);
+                Pageable pageable = PageRequest.of(0, category.booksToShow());
+                books = bookRepository.findAll(spec, pageable).getContent();
                 break;
             default:
                 throw new IllegalArgumentException("Неизвестный тип критерия: " + category.criteriaType());
@@ -52,7 +51,7 @@ public class BookSelectionService {
         int limit = Math.min(category.booksToShow(), books.size());
         return books.stream()
                 .limit(limit)
-                .map(this::toBookForCatalogDto)
+                .map(mapper::toDto)
                 .collect(Collectors.toList());
     }
 
@@ -63,14 +62,11 @@ public class BookSelectionService {
                 return getNewBooksPage(category, pageable);
             case POPULAR:
                 return getPopularBooksPage(category, pageable);
-            case BY_GENRE:
-                return getBooksByGenrePage(category, pageable);
-            case BY_AUTHOR:
-                return getBooksByAuthorPage(category, pageable);
             case BY_PERIOD:
                 return getBooksByPeriodPage(category, pageable);
             case CUSTOM:
-                return getBooksByCustomQueryPage(category, pageable);
+                Specification<BookEntity> spec = buildSpecificationFromCustomCategory(category);
+                return bookRepository.findAll(spec, pageable);
             default:
                 throw new IllegalArgumentException("Неизвестный тип критерия: " + category.criteriaType());
         }
@@ -86,16 +82,6 @@ public class BookSelectionService {
         return bookRepository.findTopBooksByRating(category.booksToShow());
     }
 
-    private List<BookEntity> getBooksByGenre(CatalogCategory category) {
-        Pageable pageable = PageRequest.of(0, category.booksToShow());
-        return bookRepository.findByGenres_Id(category.genreId(), pageable).getContent();
-    }
-
-    private List<BookEntity> getBooksByAuthor(CatalogCategory category) {
-        Pageable pageable = PageRequest.of(0, category.booksToShow());
-        return bookRepository.findByAuthorId(category.authorId(), pageable).getContent();
-    }
-
     private List<BookEntity> getBooksByPeriod(CatalogCategory category) {
         Pageable pageable = PageRequest.of(0, category.booksToShow());
         return bookRepository.findByPublicationYearBetween(
@@ -103,10 +89,6 @@ public class BookSelectionService {
                 category.maxPublicationYear(),
                 pageable
         ).getContent();
-    }
-
-    private List<BookEntity> getBooksByCustomQuery(CatalogCategory category) {
-        return bookRepository.findRandomBooks(category.booksToShow());
     }
 
     // ---- Вспомогательные методы для Page (пагинация) ----
@@ -119,14 +101,6 @@ public class BookSelectionService {
         return bookRepository.findTopBooksByRating(pageable);
     }
 
-    private Page<BookEntity> getBooksByGenrePage(CatalogCategory category, Pageable pageable) {
-        return bookRepository.findByGenres_Id(category.genreId(), pageable);
-    }
-
-    private Page<BookEntity> getBooksByAuthorPage(CatalogCategory category, Pageable pageable) {
-        return bookRepository.findByAuthorId(category.authorId(), pageable);
-    }
-
     private Page<BookEntity> getBooksByPeriodPage(CatalogCategory category, Pageable pageable) {
         return bookRepository.findByPublicationYearBetween(
                 category.minPublicationYear(),
@@ -135,35 +109,15 @@ public class BookSelectionService {
         );
     }
 
-    private Page<BookEntity> getBooksByCustomQueryPage(CatalogCategory category, Pageable pageable) {
-        return bookRepository.findRandomBooksPage(pageable);
-    }
-
-    // ---- Маппинг в DTO ----
-    private BookForCatalogDto toBookForCatalogDto(BookEntity book) {
-        String authorFullName = "";
-        String authorShortName = "";
-        if (book.getAuthor() != null) {
-            authorFullName = book.getAuthor().getFullName();
-            authorShortName = book.getAuthor().getShortName();
+    // Построение спецификации для CUSTOM-категорий (теги)
+    private Specification<BookEntity> buildSpecificationFromCustomCategory(CatalogCategory category) {
+        Specification<BookEntity> spec = (root, query, cb) -> cb.conjunction();
+        if (category.tagIds() != null && !category.tagIds().isEmpty()) {
+            spec = spec.and((root, query, cb) -> {
+                var tagsJoin = root.join("tags");
+                return tagsJoin.get("id").in(category.tagIds());
+            });
         }
-
-        var summary = ratingService.getBookRatingSummary(book.getId());
-        Double rating = summary.averageRating();
-        Integer ratingCount = summary.ratingCount();
-
-        return new BookForCatalogDto(
-                book.getId(),
-                book.getTitle(),
-                book.getPublicationYear(),
-                book.getDescription(),
-                book.getAuthor() != null ? book.getAuthor().getId() : null,
-                authorFullName,
-                authorShortName,
-                book.getCoverUrl(),
-                book.getCreatedAt(),
-                rating,
-                ratingCount
-        );
+        return spec;
     }
 }

@@ -9,4 +9,6 @@ public record CatalogCategoryWithBooksDto(
         Integer displayOrder,
         Integer booksToShow,
         List<BookForCatalogDto> books
-) {}
+) {
+
+}

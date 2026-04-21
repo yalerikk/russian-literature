@@ -1,10 +1,14 @@
 package com.literature.russian_literature.catalog.db;
 
+import com.literature.russian_literature.tags.db.TagEntity;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Table(name = "catalog_categories")
 @Entity
@@ -34,12 +38,6 @@ public class CatalogCategoryEntity {
     @Column(name = "criteria_type", nullable = false)
     private String criteriaType;
 
-    @Column(name = "genre_id")
-    private Long genreId;
-
-    @Column(name = "author_id")
-    private Long authorId;
-
     @Column(name = "min_publication_year")
     private Integer minPublicationYear;
 
@@ -52,8 +50,13 @@ public class CatalogCategoryEntity {
     @Column(name = "days_interval")
     private Integer daysInterval;
 
-    @Column(name = "custom_query")
-    private String customQuery;
+    @ManyToMany
+    @JoinTable(
+            name = "category_tags",
+            joinColumns = @JoinColumn(name = "category_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    private Set<TagEntity> tags = new HashSet<>();
 
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
