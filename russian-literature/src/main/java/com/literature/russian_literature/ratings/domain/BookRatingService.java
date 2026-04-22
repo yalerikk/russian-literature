@@ -30,10 +30,8 @@ public class BookRatingService {
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
 
-    public BookRatingService(BookRatingRepository ratingRepository,
-                             BookRatingMapper mapper,
-                             BookRatingValidator validator,
-                             BookRepository bookRepository,
+    public BookRatingService(BookRatingRepository ratingRepository, BookRatingMapper mapper,
+                             BookRatingValidator validator, BookRepository bookRepository,
                              UserRepository userRepository) {
         this.ratingRepository = ratingRepository;
         this.mapper = mapper;

@@ -27,12 +27,6 @@ public class BookRatingValidator {
         validateRatingValue(rating.rating());
     }
 
-    public void validateForUpdate(BookRating rating) {
-        validateBookExists(rating.bookId());
-        validateUserExists(rating.userId());
-        validateRatingValue(rating.rating());
-    }
-
     public void validateRatingExists(Long bookId, Long userId) {
         if (!ratingRepository.existsByBookIdAndUserId(bookId, userId)) {
             throw new IllegalArgumentException("Оценка для книги " + bookId + " от пользователя " + userId + " не найдена");

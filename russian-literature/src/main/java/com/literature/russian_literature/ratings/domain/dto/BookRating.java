@@ -9,7 +9,7 @@ public record BookRating(
         @NotNull(message = "ID книги обязателен")
         Long bookId,
 
-        //@NotNull(message = "ID пользователя обязателен")
+        @NotNull(message = "ID пользователя обязателен")
         Long userId,
 
         @NotNull(message = "Оценка обязательна")

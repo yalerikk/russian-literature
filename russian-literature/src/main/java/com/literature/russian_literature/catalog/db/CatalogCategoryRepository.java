@@ -17,7 +17,6 @@ public interface CatalogCategoryRepository extends JpaRepository<CatalogCategory
 
     boolean existsByCode(String code);
     boolean existsByName(String name);
-    boolean existsByCodeAndIdNot(String code, Long id);
     boolean existsByNameAndIdNot(String name, Long id);
     List<CatalogCategoryEntity> findByIsActive(Boolean isActive);
 

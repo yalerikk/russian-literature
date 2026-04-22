@@ -25,16 +25,16 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.GET, "/api/catalog/categories/active", "/api/catalog/categories/code/*").permitAll()
+                        // ----- permitAll -----
+                        .requestMatchers("/users/register", "/users/login").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/catalog/categories/active", "/api/catalog/categories/code/*", "/api/ratings/book/*/summary").permitAll()
+                        // ----- authenticated -----
+                        .requestMatchers("/api/ratings/**", "/users/me/**").authenticated()
                         // ----- ADMIN -----
                         .requestMatchers(HttpMethod.GET, "/api/catalog/categories/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/books/**", "/authors/**", "/genres/**", "/tags/**", "/api/catalog/categories/**", "/api/images/upload/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/books/**", "/authors/**", "/genres/**", "/tags/**", "/api/catalog/categories/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/books/**", "/authors/**", "/genres/**", "/tags/**", "/api/catalog/categories/**").hasRole("ADMIN")
-                        // ----- authenticated -----
-                        .requestMatchers("/api/ratings/**", "/users/me/**").authenticated()
-                        // ----- permitAll -----
-                        .requestMatchers("/api/ratings/book/*/summary", "/users/register", "/users/login").permitAll()
                         .anyRequest().permitAll()
                 )
                 .httpBasic(Customizer.withDefaults());

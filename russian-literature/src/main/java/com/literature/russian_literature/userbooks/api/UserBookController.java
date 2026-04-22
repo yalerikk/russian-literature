@@ -4,14 +4,13 @@ import com.literature.russian_literature.security.SecurityUtils;
 import com.literature.russian_literature.userbooks.domain.BookStatus;
 import com.literature.russian_literature.userbooks.domain.UserBookService;
 import com.literature.russian_literature.userbooks.domain.UserBook;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -30,68 +29,83 @@ public class UserBookController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        Long currentUserId = SecurityUtils.getCurrentUserId();
+        Long userId = SecurityUtils.getCurrentUserId();
         Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(userBookService.getUserBooksByStatus(currentUserId, status, pageable));
+        return ResponseEntity.ok(userBookService.getUserBooksByStatus(userId, status, pageable));
     }
 
-    // Получить первые N книг для слайдера (например, для страницы "Мои книги")
-    @GetMapping("/recent")
-    public ResponseEntity<List<UserBook>> getRecentBooks(
-            @RequestParam BookStatus status,
-            @RequestParam(defaultValue = "7") int limit
+    @GetMapping("/favorites")
+    public ResponseEntity<Page<UserBook>> getFavorites(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
     ) {
-        Long currentUserId = SecurityUtils.getCurrentUserId();
-        return ResponseEntity.ok(userBookService.getRecentUserBooksByStatus(currentUserId, status, limit));
+        Long userId = SecurityUtils.getCurrentUserId();
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(userBookService.getFavoriteBooks(userId, pageable));
     }
 
-    // Добавить книгу в коллекцию с указанным статусом (или изменить статус)
+    // GET /users/me/books/slider?status=FAVORITE&page=0&size=7
+    @GetMapping("/slider")
+    public ResponseEntity<Page<UserBook>> getUserBooksSlider(
+            @RequestParam BookStatus status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "7") int size
+    ) {
+        Long userId = SecurityUtils.getCurrentUserId();
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(userBookService.getUserBooksByStatus(userId, status, pageable));
+    }
+
+    // Добавить/обновить статус и/или избранное
     @PostMapping("/{bookId}")
     public ResponseEntity<UserBook> addBookToCollection(
             @PathVariable Long bookId,
-            @RequestParam BookStatus status
-    ) {
-        Long currentUserId = SecurityUtils.getCurrentUserId();
-        UserBook response = userBookService.addOrUpdateBookStatus(currentUserId, bookId, status);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
-    @PutMapping("/{bookId}/status")
-    public ResponseEntity<UserBook> changeStatus(
-            @PathVariable Long bookId,
-            @RequestParam BookStatus newStatus
+            @RequestParam(required = false) BookStatus status,
+            @RequestParam(required = false) Boolean favorite
     ) {
         Long userId = SecurityUtils.getCurrentUserId();
-        UserBook response = userBookService.changeBookStatus(userId, bookId, newStatus);
-        return ResponseEntity.ok(response);
+        UserBook result = userBookService.addOrUpdateBookStatus(userId, bookId, status, favorite);
+        if (result == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(result);
+    }
+
+    // Обновить прогресс (только для READING)
+    @PatchMapping("/{bookId}/progress")
+    public ResponseEntity<Void> updateProgress(
+            @PathVariable Long bookId,
+            @RequestParam Integer progress
+    ) {
+        Long userId = SecurityUtils.getCurrentUserId();
+        userBookService.updateProgress(userId, bookId, progress);
+        return ResponseEntity.ok().build();
     }
 
     // Удалить книгу из коллекции
     @DeleteMapping("/{bookId}")
     public ResponseEntity<Void> removeBookFromCollection(
             @PathVariable Long bookId,
-            @RequestParam BookStatus status
+            @RequestParam(required = false) BookStatus status,
+            @RequestParam(required = false) Boolean favorite
     ) {
-        Long currentUserId = SecurityUtils.getCurrentUserId();
-        userBookService.removeBookFromCollection(currentUserId, bookId, status);
+        Long userId = SecurityUtils.getCurrentUserId();
+        userBookService.removeFromCollection(userId, bookId, status, favorite);
         return ResponseEntity.noContent().build();
+    }
+
+    // Получить все статусы книги (для страницы книги)
+    @GetMapping("/{bookId}/status")
+    public ResponseEntity<BookStatus> getBookStatus(@PathVariable Long bookId) {
+        Long userId = SecurityUtils.getCurrentUserId();
+        return ResponseEntity.ok(userBookService.getBookProgressStatus(userId, bookId));
     }
 
     // Проверить, находится ли книга в избранном (для сердечка)
     @GetMapping("/{bookId}/favorite")
     public ResponseEntity<Map<String, Boolean>> isBookFavorite(@PathVariable Long bookId) {
-        Long currentUserId = SecurityUtils.getCurrentUserId();
-        boolean isFavorite = userBookService.isBookInFavorite(currentUserId, bookId);
+        Long userId = SecurityUtils.getCurrentUserId();
+        boolean isFavorite = userBookService.isBookInFavorite(userId, bookId);
         return ResponseEntity.ok(Map.of("favorite", isFavorite));
-    }
-
-    @PatchMapping("/{bookId}/progress")
-    public ResponseEntity<Void> updateProgress(
-            @PathVariable Long bookId,
-            @RequestParam Integer progress
-    ) {
-        Long currentUserId = SecurityUtils.getCurrentUserId();
-        userBookService.updateProgress(currentUserId, bookId, progress);
-        return ResponseEntity.ok().build();
     }
 }

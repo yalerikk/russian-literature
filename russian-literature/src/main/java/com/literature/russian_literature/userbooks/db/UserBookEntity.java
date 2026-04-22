@@ -32,7 +32,6 @@ public class UserBookEntity {
     private boolean isFavorite = false;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private BookStatus status; // null, WISHLIST, READING, READ
 
     private Integer progress; // 0-100

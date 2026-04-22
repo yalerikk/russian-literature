@@ -27,19 +27,10 @@ public interface BookRepository extends JpaRepository<BookEntity, Long>, JpaSpec
             "ORDER BY COALESCE(AVG(r.rating), 0) DESC, COUNT(r.id) DESC")
     Page<BookEntity> findTopBooksByRating(Pageable pageable);
 
-    @Query(value = "SELECT * FROM books ORDER BY RANDOM()",
-            countQuery = "SELECT COUNT(*) FROM books",
-            nativeQuery = true)
-    Page<BookEntity> findRandomBooksPage(Pageable pageable);
-
     // ----- Непагинируемые запросы (List) для слайдеров -----
     @Query(value = "SELECT * FROM books WHERE created_at >= :startDate ORDER BY created_at DESC LIMIT :limit",
             nativeQuery = true)
     List<BookEntity> findRecentBooks(@Param("startDate") LocalDateTime startDate, @Param("limit") int limit);
-
-    @Query(value = "SELECT * FROM books ORDER BY RANDOM() LIMIT :limit",
-            nativeQuery = true)
-    List<BookEntity> findRandomBooks(@Param("limit") int limit);
 
     @Query(value = "SELECT b.* FROM books b " +
             "LEFT JOIN book_ratings r ON b.id = r.book_id " +
@@ -56,14 +47,12 @@ public interface BookRepository extends JpaRepository<BookEntity, Long>, JpaSpec
     List<BookEntity> findTopByTitleContaining(@Param("query") String query, Pageable pageable); // для автокомплита
 
     // ----- Остальные методы -----
-    // Список книг по одному тегу (без пагинации)
-    List<BookEntity> findByTags_Id(Long tagId);
-    // Список книг, имеющих хотя бы один из переданных тегов
-    List<BookEntity> findByTags_IdIn(Set<Long> tagIds);
-    // Книги автора, имеющие хотя бы один из тегов
-    List<BookEntity> findByAuthorIdAndTags_IdIn(Long authorId, Set<Long> tagIds);
-    List<BookEntity> findByTitleContainingIgnoreCase(String title);
-    List<BookEntity> findByPublicationYear(Integer year);
+    @Query(value = "SELECT b.id FROM books b " +
+            "LEFT JOIN book_ratings r ON b.id = r.book_id " +
+            "GROUP BY b.id " +
+            "ORDER BY COALESCE(AVG(r.rating), 0) DESC, COUNT(r.id) DESC " +
+            "LIMIT :limit", nativeQuery = true)
+    List<Long> findTopBooksRatingIds(@Param("limit") int limit);
 
     @Query("SELECT COUNT(b) > 0 FROM BookEntity b WHERE b.title = :title AND b.author.id = :authorId")
     boolean existsByTitleAndAuthorId(@Param("title") String title, @Param("authorId") Long authorId);

@@ -86,13 +86,18 @@ public class BookController {
             @RequestParam(required = false) String level,
             @RequestParam(required = false) String literature,
             @RequestParam(required = false) String readingType,
+            @RequestParam(required = false) String categoryCode,
+            @RequestParam(required = false) String searchQuery,
+            @RequestParam(required = false) Long authorId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        log.info("Called filterBooks with genreIds={}, grade={}, level={}, literature={}, readingType={}, page={}, size={}",
-                genreIds, grade, level, literature, readingType, page, size);
+        log.info("Called filterBooks with genreIds={}, grade={}, level={}, literature={}, readingType={}, " +
+                        "categoryCode={}, searchQuery={}, authorId={}, page={}, size={}",
+                genreIds, grade, level, literature, readingType, categoryCode, searchQuery, authorId, page, size);
         Pageable pageable = PageRequest.of(page, size);
-        Page<BookEntity> bookPage = bookService.filterBooks(genreIds, grade, level, literature, readingType, pageable);
+        Page<BookEntity> bookPage = bookService.filterBooks(genreIds, grade, level, literature, readingType,
+                categoryCode, searchQuery, authorId, pageable);
         Page<BookForCatalogDto> dtoPage = bookPage.map(bookForCatalogMapper::toDto);
         return ResponseEntity.ok(dtoPage);
     }

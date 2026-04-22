@@ -2,6 +2,7 @@ package com.literature.russian_literature.search.api;
 
 import com.literature.russian_literature.books.db.BookEntity;
 import com.literature.russian_literature.authors.db.AuthorEntity;
+import com.literature.russian_literature.books.domain.BookService;
 import com.literature.russian_literature.catalog.api.dto.BookForCatalogDto;
 import com.literature.russian_literature.catalog.db.BookForCatalogMapper;
 import com.literature.russian_literature.search.domain.SearchSuggestion;
@@ -19,10 +20,12 @@ import java.util.List;
 public class SearchController {
     private final SearchService searchService;
     private final BookForCatalogMapper bookForCatalogMapper;
+    private final BookService bookService;
 
-    public SearchController(SearchService searchService, BookForCatalogMapper bookForCatalogMapper) {
+    public SearchController(SearchService searchService, BookForCatalogMapper bookForCatalogMapper, BookService bookService) {
         this.searchService = searchService;
         this.bookForCatalogMapper = bookForCatalogMapper;
+        this.bookService = bookService;
     }
 
     @GetMapping("/suggest")
@@ -37,9 +40,10 @@ public class SearchController {
             @RequestParam(defaultValue = "20") int size
     ) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<BookEntity> bookPage = searchService.searchBooks(query, pageable);
-        Page<BookForCatalogDto> dtoPage = bookPage.map(bookForCatalogMapper::toDto);
-        return ResponseEntity.ok(dtoPage);
+        Page<BookEntity> bookPage = bookService.filterBooks(
+                null, null, null, null, null, null, query, null, pageable
+        );
+        return ResponseEntity.ok(bookPage.map(bookForCatalogMapper::toDto));
     }
 
     @GetMapping("/authors")

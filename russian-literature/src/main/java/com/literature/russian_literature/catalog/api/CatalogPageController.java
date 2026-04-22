@@ -12,7 +12,6 @@ import com.literature.russian_literature.catalog.domain.BookSelectionService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -76,10 +75,10 @@ public class CatalogPageController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "7") int size
     ) {
-        CatalogCategory category = categoryService.getCategoryByCode(code);
         Pageable pageable = PageRequest.of(page, size);
-        Page<BookEntity> bookPage = bookService.getBooksForCategoryPage(category, pageable);
-        Page<BookForCatalogDto> dtoPage = bookPage.map(bookForCatalogMapper::toDto);
-        return ResponseEntity.ok(dtoPage);
+        Page<BookEntity> bookPage = bookService.filterBooks(
+                null, null, null, null, null, code, null, null, pageable
+        );
+        return ResponseEntity.ok(bookPage.map(bookForCatalogMapper::toDto));
     }
 }

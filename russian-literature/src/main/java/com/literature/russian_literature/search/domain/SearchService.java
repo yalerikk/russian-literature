@@ -58,11 +58,6 @@ public class SearchService {
         return results;
     }
 
-    // Полнотекстовый поиск книг (с пагинацией)
-    public Page<BookEntity> searchBooks(String query, Pageable pageable) {
-        return bookRepository.searchByTitle(query, pageable);
-    }
-
     // Полнотекстовый поиск авторов (с пагинацией)
     public Page<AuthorEntity> searchAuthors(String query, Pageable pageable) {
         return authorRepository.searchByNormalizedName(query, pageable);

@@ -55,23 +55,6 @@ public class BookSelectionService {
                 .collect(Collectors.toList());
     }
 
-    // Для бесконечной карусели – Page с пагинацией
-    public Page<BookEntity> getBooksForCategoryPage(CatalogCategory category, Pageable pageable) {
-        switch (CatalogCategory.CriteriaType.valueOf(category.criteriaType())) {
-            case NEW:
-                return getNewBooksPage(category, pageable);
-            case POPULAR:
-                return getPopularBooksPage(category, pageable);
-            case BY_PERIOD:
-                return getBooksByPeriodPage(category, pageable);
-            case CUSTOM:
-                Specification<BookEntity> spec = buildSpecificationFromCustomCategory(category);
-                return bookRepository.findAll(spec, pageable);
-            default:
-                throw new IllegalArgumentException("Неизвестный тип критерия: " + category.criteriaType());
-        }
-    }
-
     // ---- Вспомогательные методы для List (главная) ----
     private List<BookEntity> getNewBooks(CatalogCategory category) {
         LocalDateTime startDate = LocalDateTime.now().minusDays(category.daysInterval());
@@ -89,24 +72,6 @@ public class BookSelectionService {
                 category.maxPublicationYear(),
                 pageable
         ).getContent();
-    }
-
-    // ---- Вспомогательные методы для Page (пагинация) ----
-    private Page<BookEntity> getNewBooksPage(CatalogCategory category, Pageable pageable) {
-        LocalDateTime startDate = LocalDateTime.now().minusDays(category.daysInterval());
-        return bookRepository.findByCreatedAtAfterOrderByCreatedAtDesc(startDate, pageable);
-    }
-
-    private Page<BookEntity> getPopularBooksPage(CatalogCategory category, Pageable pageable) {
-        return bookRepository.findTopBooksByRating(pageable);
-    }
-
-    private Page<BookEntity> getBooksByPeriodPage(CatalogCategory category, Pageable pageable) {
-        return bookRepository.findByPublicationYearBetween(
-                category.minPublicationYear(),
-                category.maxPublicationYear(),
-                pageable
-        );
     }
 
     // Построение спецификации для CUSTOM-категорий (теги)

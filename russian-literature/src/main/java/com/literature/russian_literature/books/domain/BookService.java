@@ -9,6 +9,7 @@ import com.literature.russian_literature.authors.db.AuthorEntity;
 import com.literature.russian_literature.authors.db.AuthorRepository;
 import com.literature.russian_literature.catalog.domain.BookSelectionService;
 import com.literature.russian_literature.catalog.domain.CatalogCategory;
+import com.literature.russian_literature.catalog.domain.CatalogCategoryService;
 import com.literature.russian_literature.cloudinary.CloudinaryService;
 import com.literature.russian_literature.genres.db.GenreEntity;
 import com.literature.russian_literature.genres.db.GenreRepository;
@@ -38,26 +39,25 @@ public class BookService {
     private final BookMapper mapper;
     private final BookValidator validator;
     private final BookNormalizer normalizer;
+    private final CatalogCategoryService catalogCategoryService;
     private final AuthorRepository authorRepository;
     private final GenreRepository genreRepository;
     private final TagRepository tagRepository;
-    private final BookSelectionService bookSelectionService;
     private final BookFileRepository bookFileRepository;
     private final CloudinaryService cloudinaryService;
 
     public BookService(BookRepository repository, BookMapper mapper,
-                       BookValidator validator, BookNormalizer normalizer,
-                       AuthorRepository authorRepository, GenreRepository genreRepository,
-                       TagRepository tagRepository, BookSelectionService bookSelectionService,
+                       BookValidator validator, BookNormalizer normalizer, CatalogCategoryService catalogCategoryService,
+                       AuthorRepository authorRepository, GenreRepository genreRepository, TagRepository tagRepository,
                        BookFileRepository bookFileRepository, CloudinaryService cloudinaryService) {
         this.repository = repository;
         this.mapper = mapper;
         this.validator = validator;
         this.normalizer = normalizer;
+        this.catalogCategoryService = catalogCategoryService;
         this.authorRepository = authorRepository;
         this.genreRepository = genreRepository;
         this.tagRepository = tagRepository;
-        this.bookSelectionService = bookSelectionService;
         this.bookFileRepository = bookFileRepository;
         this.cloudinaryService = cloudinaryService;
     }
@@ -189,20 +189,78 @@ public class BookService {
     }
 
     public Page<BookEntity> filterBooks(List<Long> genreIds, String grade, String level,
-                                        String literature, String readingType, Pageable pageable) {
+            String literature, String readingType, String categoryCode, String searchQuery, Long authorId,
+            Pageable pageable
+    ) {
         Specification<BookEntity> spec = (root, query, cb) -> cb.conjunction();
+
+        // 1. Фильтр по жанрам
         if (genreIds != null && !genreIds.isEmpty()) {
-            spec = spec.and(BookSpecifications.byGenres(genreIds));
+            spec = spec.and((root, q, cb) -> {
+                var genresJoin = root.join("genres");
+                return genresJoin.get("id").in(genreIds);
+            });
         }
+
+        // 2. Фильтры по тегам (учебные)
         spec = spec.and(BookSpecifications.byTagTypeAndName(TagType.GRADE, grade))
                 .and(BookSpecifications.byTagTypeAndName(TagType.LEVEL, level))
                 .and(BookSpecifications.byTagTypeAndName(TagType.CATEGORY, literature))
                 .and(BookSpecifications.byTagTypeAndName(TagType.READING_TYPE, readingType));
+
+        // 3. Категория
+        if (categoryCode != null && !categoryCode.isBlank()) {
+            CatalogCategory category = catalogCategoryService.getCategoryByCode(categoryCode);
+            if ("POPULAR".equals(category.criteriaType())) {
+                List<Long> popularIds = repository.findTopBooksRatingIds(500);
+                if (popularIds.isEmpty()) {
+                    return Page.empty(pageable);
+                }
+                spec = spec.and((root, q, cb) -> root.get("id").in(popularIds));
+            } else {
+                spec = spec.and(buildCategorySpecification(category));
+            }
+        }
+
+        // 4. Поиск по названию
+        if (searchQuery != null && !searchQuery.isBlank()) {
+            spec = spec.and((root, q, cb) ->
+                    cb.like(cb.lower(root.get("title")), "%" + searchQuery.toLowerCase() + "%")
+            );
+        }
+
+        // 5. Фильтр по автору
+        if (authorId != null) {
+            spec = spec.and((root, q, cb) ->
+                    cb.equal(root.get("author").get("id"), authorId)
+            );
+        }
+
         return repository.findAll(spec, pageable);
     }
 
-    public Page<BookEntity> getBooksForCategoryPage(CatalogCategory category, Pageable pageable) {
-        return bookSelectionService.getBooksForCategoryPage(category, pageable);
+    private Specification<BookEntity> buildCategorySpecification(CatalogCategory category) {
+        return switch (category.criteriaType()) {
+            case "NEW" -> (root, query, cb) -> {
+                LocalDateTime startDate = LocalDateTime.now().minusDays(category.daysInterval());
+                return cb.greaterThanOrEqualTo(root.get("createdAt"), startDate);
+            };
+            case "BY_PERIOD" -> (root, query, cb) -> {
+                if (category.minPublicationYear() != null && category.maxPublicationYear() != null) {
+                    return cb.between(root.get("publicationYear"),
+                            category.minPublicationYear(), category.maxPublicationYear());
+                }
+                return cb.conjunction();
+            };
+            case "CUSTOM" -> (root, query, cb) -> {
+                if (category.tagIds() == null || category.tagIds().isEmpty()) {
+                    return cb.conjunction();
+                }
+                var tagsJoin = root.join("tags");
+                return tagsJoin.get("id").in(category.tagIds());
+            };
+            default -> (root, query, cb) -> cb.conjunction();
+        };
     }
 
     public String getBookFileUrlByFormat(Long bookId, BookFormat format) {

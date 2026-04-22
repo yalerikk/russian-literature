@@ -166,13 +166,4 @@ public class UserService {
         return repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
     }
-
-    // Проверка существования пользователя
-    public boolean userExists(String username) {
-        return repository.existsByUsername(username);
-    }
-
-    public boolean emailExists(String email) {
-        return repository.existsByEmail(email);
-    }
 }
