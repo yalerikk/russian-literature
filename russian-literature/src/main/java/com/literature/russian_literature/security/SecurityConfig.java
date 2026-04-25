@@ -29,9 +29,9 @@ public class SecurityConfig {
                         .requestMatchers("/users/register", "/users/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/catalog/categories/active", "/api/catalog/categories/code/*", "/api/ratings/book/*/summary").permitAll()
                         // ----- authenticated -----
-                        .requestMatchers("/api/ratings/**", "/users/me/**").authenticated()
+                        .requestMatchers("/api/ratings/**", "/users/me/**", "/books/*/read", "/books/*/download").authenticated()
                         // ----- ADMIN -----
-                        .requestMatchers(HttpMethod.GET, "/api/catalog/categories/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/books/admin/list", "/authors/admin/list", "/users/admin/list", "/genres/admin/list", "/tags/admin/list", "/api/catalog/categories/admin/list", "/api/catalog/categories/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/books/**", "/authors/**", "/genres/**", "/tags/**", "/api/catalog/categories/**", "/api/images/upload/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/books/**", "/authors/**", "/genres/**", "/tags/**", "/api/catalog/categories/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/books/**", "/authors/**", "/genres/**", "/tags/**", "/api/catalog/categories/**").hasRole("ADMIN")

@@ -3,6 +3,7 @@ package com.literature.russian_literature.ratings.db;
 import com.literature.russian_literature.books.db.BookEntity;
 import com.literature.russian_literature.ratings.domain.dto.BookRating;
 import com.literature.russian_literature.users.db.UserEntity;
+
 import org.springframework.stereotype.Component;
 
 @Component

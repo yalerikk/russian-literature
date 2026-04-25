@@ -4,6 +4,7 @@ import com.literature.russian_literature.authors.db.AuthorEntity;
 import com.literature.russian_literature.books.domain.dto.Book;
 import com.literature.russian_literature.genres.db.GenreEntity;
 import com.literature.russian_literature.tags.db.TagEntity;
+
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
@@ -14,12 +15,10 @@ public class BookMapper {
     public Book toDomain(BookEntity entity) {
         Long authorId = entity.getAuthor() != null ? entity.getAuthor().getId() : null;
 
-        // Преобразуем жанры в ID
         Set<Long> genreIds = entity.getGenres().stream()
                 .map(GenreEntity::getId)
                 .collect(Collectors.toSet());
 
-        // Преобразуем теги в ID
         Set<Long> tagIds = entity.getTags().stream()
                 .map(TagEntity::getId)
                 .collect(Collectors.toSet());

@@ -3,10 +3,12 @@ package com.literature.russian_literature.userbooks.db;
 import com.literature.russian_literature.books.db.BookEntity;
 import com.literature.russian_literature.users.db.UserEntity;
 import com.literature.russian_literature.userbooks.domain.BookStatus;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 
 @Entity

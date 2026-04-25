@@ -6,17 +6,18 @@ import com.literature.russian_literature.genres.db.GenreMapper;
 import com.literature.russian_literature.genres.db.GenreRepository;
 import com.literature.russian_literature.genres.util.GenreNormalizer;
 import com.literature.russian_literature.genres.util.GenreValidator;
+
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 public class GenreService {
-    private static final Logger log = LoggerFactory.getLogger(GenreService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(GenreService.class);
 
     private final GenreRepository repository;
     private final GenreMapper mapper;
@@ -35,14 +36,12 @@ public class GenreService {
 
     public Genre getGenreById(Long id) {
         GenreEntity genreEntity = repository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Жанр с id = " + id + " не найден"));
+                .orElseThrow(() -> new EntityNotFoundException("Genre with id = " + id + " not found"));
         return mapper.toDomain(genreEntity);
     }
 
-    public List<Genre> getAllGenres() {
-        return repository.findAll().stream()
-                .map(mapper::toDomain)
-                .toList();
+    public Page<GenreEntity> getAllGenresForAdmin(Pageable pageable) {
+        return repository.findAll(pageable);
     }
 
     @Transactional
@@ -52,35 +51,35 @@ public class GenreService {
 
         var entityToSave = mapper.toEntity(normalizedGenre);
         var savedEntity = repository.save(entityToSave);
-        log.info("Создан жанр: '{}' с id = {}", savedEntity.getName(), savedEntity.getId());
+        LOG.info("Created genre: '{}' with id = {}", savedEntity.getName(), savedEntity.getId());
         return mapper.toDomain(savedEntity);
     }
 
     @Transactional
     public Genre updateGenre(Long id, Genre genre) {
         GenreEntity existing = repository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Жанр с id = " + id + " не найден"));
+                .orElseThrow(() -> new EntityNotFoundException("Genre with id = " + id + " not found"));
 
         Genre normalizedGenre = normalizer.normalizeGenre(genre);
         validator.validateForUpdate(id, normalizedGenre);
 
         existing.setName(normalizedGenre.name());
         GenreEntity updated = repository.save(existing);
-        log.info("Обновлен жанр: '{}' с id = {}", updated.getName(), updated.getId());
+        LOG.info("Updated genre: '{}' with id = {}", updated.getName(), updated.getId());
         return mapper.toDomain(updated);
     }
 
     @Transactional
     public void deleteGenre(Long id) {
         GenreEntity genre = repository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Жанр с id = " + id + " не найден"));
+                .orElseThrow(() -> new EntityNotFoundException("Genre with id = " + id + " not found"));
 
         if (bookRepository.existsByGenres_Id(id)) {
-            log.warn("Жанр '{}' используется в книгах, но будет удален вместе со связями", genre.getName());
+            LOG.warn("Genre '{}' is used in books, links will be deleted", genre.getName());
             bookRepository.deleteAllGenreLinks(id);
         }
 
         repository.deleteById(id);
-        log.info("Удален жанр: '{}' с id = {}", genre.getName(), id);
+        LOG.info("Deleted genre: '{}' with id = {}", genre.getName(), id);
     }
 }

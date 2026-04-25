@@ -2,6 +2,7 @@ package com.literature.russian_literature.genres.util;
 
 import com.literature.russian_literature.genres.domain.Genre;
 import com.literature.russian_literature.util.StringNormalizer;
+
 import org.springframework.stereotype.Component;
 
 @Component

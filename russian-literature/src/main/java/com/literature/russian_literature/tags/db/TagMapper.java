@@ -1,6 +1,7 @@
 package com.literature.russian_literature.tags.db;
 
 import com.literature.russian_literature.tags.domain.Tag;
+
 import org.springframework.stereotype.Component;
 
 @Component

@@ -3,6 +3,7 @@ package com.literature.russian_literature.tags.util;
 import com.literature.russian_literature.tags.db.TagRepository;
 import com.literature.russian_literature.tags.domain.Tag;
 import com.literature.russian_literature.util.GlobalValidator;
+
 import org.springframework.stereotype.Component;
 
 @Component
@@ -26,20 +27,20 @@ public class TagValidator {
     }
 
     private void validateRequiredFields(Tag tag) {
-        globalValidator.validateNotBlank(tag.name(), "Название тега");
+        globalValidator.validateNotBlank(tag.name(), "Tag name");
 
         if (tag.name().length() > 50) {
-            throw new IllegalArgumentException("Название тега не должно превышать 50 символов");
+            throw new IllegalArgumentException("Tag name must not exceed 50 characters");
         }
 
         if (tag.type() == null) {
-            throw new IllegalArgumentException("Тип тега обязателен");
+            throw new IllegalArgumentException("Tag type is required");
         }
     }
 
     private void validateNameUniqueness(String name) {
         if (repository.existsByName(name)) {
-            throw new IllegalArgumentException("Тег с названием '" + name + "' уже существует");
+            throw new IllegalArgumentException("Tag with name '" + name + "' already exists");
         }
     }
 
@@ -47,7 +48,7 @@ public class TagValidator {
         repository.findByName(name)
                 .ifPresent(existing -> {
                     if (!existing.getId().equals(id)) {
-                        throw new IllegalArgumentException("Тег с названием '" + name + "' уже существует");
+                        throw new IllegalArgumentException("Tag with name '" + name + "' already exists");
                     }
                 });
     }

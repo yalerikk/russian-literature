@@ -1,11 +1,13 @@
 package com.literature.russian_literature.books.api;
 
 import com.literature.russian_literature.books.db.BookEntity;
+import com.literature.russian_literature.books.db.BookMapper;
 import com.literature.russian_literature.books.domain.BookFormat;
 import com.literature.russian_literature.books.domain.dto.Book;
 import com.literature.russian_literature.books.domain.BookService;
-import com.literature.russian_literature.catalog.api.dto.BookForCatalogDto;
+import com.literature.russian_literature.catalog.domain.dto.BookForCatalogDto;
 import com.literature.russian_literature.catalog.db.BookForCatalogMapper;
+
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,69 +18,37 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/books")
 public class BookController {
-    private static final Logger log = LoggerFactory.getLogger(BookController.class);
+    private static final Logger LOG = LoggerFactory.getLogger(BookController.class);
 
     private final BookService bookService;
     private final BookForCatalogMapper bookForCatalogMapper;
+    private final BookMapper mapper;
 
-    public BookController(BookService bookService, BookForCatalogMapper bookForCatalogMapper) {
+    public BookController(BookService bookService, BookForCatalogMapper bookForCatalogMapper, BookMapper mapper) {
         this.bookService = bookService;
         this.bookForCatalogMapper = bookForCatalogMapper;
+        this.mapper = mapper;
     }
 
-    // GET BY ID
-    @GetMapping("/{id}")
-    public ResponseEntity<Book> getBookById(@PathVariable("id") Long id) {
-        log.info("Called getBookById by id={}", id);
-        return ResponseEntity.ok(bookService.getBookById(id));
-    }
-
-    // GET ALL
-    @GetMapping
-    public ResponseEntity<List<Book>> getAllBooks() {
-        log.info("Called getAllBooks");
-        return ResponseEntity.ok(bookService.getAllBooks());
-    }
-
-    // POST
-    @PostMapping
-    public ResponseEntity<Book> createBook(
-            @Valid @RequestBody Book bookToCreate
+    @GetMapping("/admin/list")
+    public ResponseEntity<Page<Book>> getBooksForAdmin(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
     ) {
-        log.info("Called createBook");
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(bookService.createBook(bookToCreate));
+        Pageable pageable = PageRequest.of(page, size);
+        Page<BookEntity> bookPage = bookService.getAllBooks(pageable);
+        Page<Book> dtoPage = bookPage.map(mapper::toDomain);
+        LOG.info("Admin list: page={}, size={}, total={}", page, size, dtoPage.getTotalElements());
+        return ResponseEntity.ok(dtoPage);
     }
 
-    // PUT
-    @PutMapping("/{id}")
-    public ResponseEntity<Book> updateBook(
-            @PathVariable Long id,
-            @Valid @RequestBody Book bookToUpdate
-    ) {
-        log.info("Called updateBook id={}, bookToUpdate={}", id, bookToUpdate);
-        Book updated = bookService.updateBook(id, bookToUpdate);
-        return ResponseEntity.ok(updated);
-    }
-
-    // DELETE
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteBook(
-            @PathVariable Long id
-    ) {
-        log.info("Called deleteBook: id={}", id);
-        bookService.deleteBook(id);
-        return ResponseEntity.ok()
-                .build();
-    }
-
-    // FILTER
     @GetMapping("/filter")
     public ResponseEntity<Page<BookForCatalogDto>> filterBooks(
             @RequestParam(required = false) List<Long> genreIds,
@@ -92,7 +62,7 @@ public class BookController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        log.info("Called filterBooks with genreIds={}, grade={}, level={}, literature={}, readingType={}, " +
+        LOG.info("Called filterBooks with genreIds={}, grade={}, level={}, literature={}, readingType={}, " +
                         "categoryCode={}, searchQuery={}, authorId={}, page={}, size={}",
                 genreIds, grade, level, literature, readingType, categoryCode, searchQuery, authorId, page, size);
         Pageable pageable = PageRequest.of(page, size);
@@ -102,12 +72,64 @@ public class BookController {
         return ResponseEntity.ok(dtoPage);
     }
 
-    // DOWNLOAD
+    @GetMapping("/{id}")
+    public ResponseEntity<Book> getBookById(
+            @PathVariable("id") Long id
+    ) {
+        LOG.info("Called getBookById by id={}", id);
+        return ResponseEntity.ok(bookService.getBookById(id));
+    }
+
+    @GetMapping("/{id}/read")
+    public ResponseEntity<Void> readBook(
+            @PathVariable Long id,
+            @RequestParam BookFormat format
+    ) {
+        if (format != BookFormat.PDF) {
+            LOG.warn("Unsupported read format {} for book {}", format, id);
+            throw new IllegalArgumentException("Online reading is supported only for PDF format");
+        }
+        String url = bookService.getBookFileUrlByFormat(id, format);
+        LOG.info("Redirect {} to read book {}", url, id);
+        return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(url)).build();
+    }
+
     @GetMapping("/{id}/download")
     public ResponseEntity<Map<String, String>> getBookFileUrl(
             @PathVariable Long id,
-            @RequestParam BookFormat format) {
+            @RequestParam BookFormat format
+    ) {
         String url = bookService.getBookFileUrlByFormat(id, format);
+        LOG.info("Provide download URL for book id={}, format={}", id, format);
         return ResponseEntity.ok(Map.of("url", url));
+    }
+
+    @PostMapping
+    public ResponseEntity<Book> createBook(
+            @Valid @RequestBody Book bookToCreate
+    ) {
+        LOG.info("Called createBook");
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(bookService.createBook(bookToCreate));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Book> updateBook(
+            @PathVariable Long id,
+            @Valid @RequestBody Book bookToUpdate
+    ) {
+        LOG.info("Called updateBook id={}, bookToUpdate={}", id, bookToUpdate);
+        Book updated = bookService.updateBook(id, bookToUpdate);
+        return ResponseEntity.ok(updated);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteBook(
+            @PathVariable Long id
+    ) {
+        LOG.info("Called deleteBook id={}", id);
+        bookService.deleteBook(id);
+        return ResponseEntity.ok()
+                .build();
     }
 }

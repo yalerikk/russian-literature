@@ -1,6 +1,7 @@
 package com.literature.russian_literature.tags.db;
 
 import com.literature.russian_literature.tags.domain.TagType;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;

@@ -1,6 +1,7 @@
 package com.literature.russian_literature.books.db;
 
 import com.literature.russian_literature.books.domain.BookFormat;
+
 import jakarta.persistence.*;
 import jakarta.persistence.Column;
 import lombok.Data;

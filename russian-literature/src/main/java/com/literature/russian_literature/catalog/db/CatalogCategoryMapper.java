@@ -1,8 +1,10 @@
 package com.literature.russian_literature.catalog.db;
 
-import com.literature.russian_literature.catalog.domain.CatalogCategory;
+import com.literature.russian_literature.catalog.domain.dto.CatalogCategory;
 import com.literature.russian_literature.tags.db.TagEntity;
+
 import org.springframework.stereotype.Component;
+
 import java.util.Set;
 import java.util.stream.Collectors;
 

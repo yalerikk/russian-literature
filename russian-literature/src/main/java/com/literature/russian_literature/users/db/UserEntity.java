@@ -1,6 +1,7 @@
 package com.literature.russian_literature.users.db;
 
 import com.literature.russian_literature.users.domain.UserRole;
+
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;

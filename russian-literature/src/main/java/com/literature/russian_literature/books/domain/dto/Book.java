@@ -1,6 +1,7 @@
 package com.literature.russian_literature.books.domain.dto;
 
 import jakarta.validation.constraints.*;
+
 import java.time.LocalDateTime;
 import java.util.Set;
 
@@ -28,16 +29,14 @@ public record Book(
         @Null LocalDateTime createdAt,
         @Null LocalDateTime updatedAt,
 
-        // Жанры книги (список ID)
         @NotNull(message = "Список жанров не может быть null")
         Set<Long> genreIds,
 
-        // Учебные теги книги (список ID)
         @NotNull(message = "Список тегов не может быть null")
         Set<Long> tagIds
 ) {
-        public Book {
-                if (genreIds == null) genreIds = Set.of();
-                if (tagIds == null) tagIds = Set.of();
-        }
+    public Book {
+        if (genreIds == null) genreIds = Set.of();
+        if (tagIds == null) tagIds = Set.of();
+    }
 }

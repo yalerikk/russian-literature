@@ -4,11 +4,12 @@ import com.literature.russian_literature.books.db.BookEntity;
 import com.literature.russian_literature.books.db.BookRepository;
 import com.literature.russian_literature.authors.db.AuthorEntity;
 import com.literature.russian_literature.authors.db.AuthorRepository;
-import com.literature.russian_literature.search.domain.SearchSuggestion;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,7 +28,6 @@ public class SearchService {
         List<SearchSuggestion> results = new ArrayList<>();
         Pageable limit = PageRequest.of(0, 5); // по 5 книг и авторов
 
-        // Книги
         List<BookEntity> books = bookRepository.findTopByTitleContaining(query, limit);
         for (BookEntity book : books) {
             String authorName = book.getAuthor() != null ? book.getAuthor().getShortName() : "";
@@ -39,7 +39,6 @@ public class SearchService {
             ));
         }
 
-        // Авторы
         List<AuthorEntity> authors = authorRepository.findByNormalizedNameContaining(query);
         for (AuthorEntity author : authors) {
             String lifespan = "";
@@ -58,7 +57,6 @@ public class SearchService {
         return results;
     }
 
-    // Полнотекстовый поиск авторов (с пагинацией)
     public Page<AuthorEntity> searchAuthors(String query, Pageable pageable) {
         return authorRepository.searchByNormalizedName(query, pageable);
     }

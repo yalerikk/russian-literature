@@ -18,9 +18,8 @@ import java.util.stream.Collectors;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
-    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final Logger LOG = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    // Обработка ошибок валидации (@Valid)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationExceptions(MethodArgumentNotValidException ex) {
         String errorMessage = ex.getBindingResult()
@@ -33,10 +32,10 @@ public class GlobalExceptionHandler {
                 })
                 .collect(Collectors.joining("; "));
 
-        log.warn("Validation error: {}", errorMessage);
+        LOG.warn("Validation error: {}", errorMessage);
 
         var errorDto = new ErrorResponse(
-                "Ошибка валидации данных",
+                "Data validation error",
                 errorMessage,
                 LocalDateTime.now()
         );
@@ -44,22 +43,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorDto);
     }
 
-    // Обработка некорректного JSON
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
-        log.warn("Malformed JSON request: {}", ex.getMessage());
+        LOG.warn("Malformed JSON request: {}", ex.getMessage());
 
-        String userMessage = "Неверный формат JSON данных";
-        String detailedMessage = "Проверьте корректность всех полей и их типов";
+        String userMessage = "Invalid JSON data format";
+        String detailedMessage = "Check all fields and their types for correctness";
 
-        // Более конкретные сообщения для частых ошибок
         if (ex.getMessage() != null) {
             if (ex.getMessage().contains("Enum")) {
-                userMessage = "Некорректное значение для одного из полей";
-                detailedMessage = "Проверьте значения полей с предопределенными вариантами (жанр, тип хранения и т.д.)";
+                userMessage = "Invalid value for one of the fields";
+                detailedMessage = "Check values for fields with predefined options (genre, format, etc.)";
             } else if (ex.getMessage().contains("LocalDate")) {
-                userMessage = "Неверный формат даты";
-                detailedMessage = "Используйте формат ГГГГ-ММ-ДД (например: 2021-11-11)";
+                userMessage = "Invalid date format";
+                detailedMessage = "Use format YYYY-MM-DD (e.g., 2021-11-11)";
             }
         }
 
@@ -67,55 +64,51 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorDto);
     }
 
-    // Обработка неверных типов параметров
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException ex) {
-        log.warn("Type mismatch for parameter: {}", ex.getName());
+        LOG.warn("Type mismatch for parameter: {}", ex.getName());
 
         var errorDto = new ErrorResponse(
-                "Неверный тип параметра",
-                String.format("Параметр '%s' должен быть типа %s", ex.getName(), ex.getRequiredType().getSimpleName()),
+                "Invalid parameter type",
+                String.format("Parameter '%s' must be of type %s", ex.getName(), ex.getRequiredType().getSimpleName()),
                 LocalDateTime.now()
         );
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorDto);
     }
 
-    // Обработка отсутствующих параметров
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ErrorResponse> handleMissingParams(MissingServletRequestParameterException ex) {
-        log.warn("Missing parameter: {}", ex.getParameterName());
+        LOG.warn("Missing parameter: {}", ex.getParameterName());
 
         var errorDto = new ErrorResponse(
-                "Отсутствует обязательный параметр",
-                String.format("Параметр '%s' обязателен", ex.getParameterName()),
+                "Required parameter missing",
+                String.format("Parameter '%s' is required", ex.getParameterName()),
                 LocalDateTime.now()
         );
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorDto);
     }
 
-    // Обработка 404 - не найден endpoint
     @ExceptionHandler(NoHandlerFoundException.class)
     public ResponseEntity<ErrorResponse> handleNoHandlerFoundException(NoHandlerFoundException ex) {
-        log.warn("No handler found for: {} {}", ex.getHttpMethod(), ex.getRequestURL());
+        LOG.warn("No handler found for: {} {}", ex.getHttpMethod(), ex.getRequestURL());
 
         var errorDto = new ErrorResponse(
-                "Ресурс не найден",
-                String.format("Метод %s не поддерживается для URL: %s", ex.getHttpMethod(), ex.getRequestURL()),
+                "Resource not found",
+                String.format("Method %s is not supported for URL: %s", ex.getHttpMethod(), ex.getRequestURL()),
                 LocalDateTime.now()
         );
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorDto);
     }
 
-    // Обработка EntityNotFoundException (более специфичное сообщение)
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleEntityNotFoundException(EntityNotFoundException e) {
-        log.warn("Entity not found: {}", e.getMessage());
+        LOG.warn("Entity not found: {}", e.getMessage());
 
         var errorDto = new ErrorResponse(
-                "Объект не найден",
+                "Object not found",
                 e.getMessage(),
                 LocalDateTime.now()
         );
@@ -123,13 +116,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorDto);
     }
 
-    // Обработка ошибок аутентификации
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException e) {
-        log.warn("Authentication failed: {}", e.getMessage());
+        LOG.warn("Authentication failed: {}", e.getMessage());
 
         var errorDto = new ErrorResponse(
-                "Ошибка аутентификации",
+                "Authentication error",
                 e.getMessage(),
                 LocalDateTime.now()
         );
@@ -137,13 +129,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorDto);
     }
 
-    // Обработка бизнес-логики (IllegalArgumentException, IllegalStateException)
     @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
     public ResponseEntity<ErrorResponse> handleBusinessLogicException(RuntimeException e) {
-        log.warn("Business logic error: {}", e.getMessage());
+        LOG.warn("Business logic error: {}", e.getMessage());
 
         var errorDto = new ErrorResponse(
-                "Ошибка в данных",
+                "Data error",
                 e.getMessage(),
                 LocalDateTime.now()
         );
@@ -151,21 +142,19 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorDto);
     }
 
-    // Общая обработка всех остальных исключений
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception e) {
-        log.error("Internal server error", e);
+        LOG.error("Internal server error", e);
 
         var errorDto = new ErrorResponse(
-                "Внутренняя ошибка сервера",
-                "Произошла непредвиденная ошибка. Пожалуйста, попробуйте позже.",
+                "Internal server error",
+                "An unexpected error occurred. Please try again later.",
                 LocalDateTime.now()
         );
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorDto);
     }
 
-    // Кастомное исключение для ошибок аутентификации
     public static class AuthenticationException extends RuntimeException {
         public AuthenticationException(String message) {
             super(message);

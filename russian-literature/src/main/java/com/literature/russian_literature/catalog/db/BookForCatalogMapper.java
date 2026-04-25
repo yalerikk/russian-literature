@@ -1,8 +1,9 @@
 package com.literature.russian_literature.catalog.db;
 
 import com.literature.russian_literature.books.db.BookEntity;
-import com.literature.russian_literature.catalog.api.dto.BookForCatalogDto;
+import com.literature.russian_literature.catalog.domain.dto.BookForCatalogDto;
 import com.literature.russian_literature.ratings.domain.BookRatingService;
+
 import org.springframework.stereotype.Component;
 
 @Component

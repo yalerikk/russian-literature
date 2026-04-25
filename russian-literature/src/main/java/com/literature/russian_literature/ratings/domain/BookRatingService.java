@@ -9,6 +9,7 @@ import com.literature.russian_literature.ratings.domain.dto.BookRating;
 import com.literature.russian_literature.ratings.util.BookRatingValidator;
 import com.literature.russian_literature.users.db.UserEntity;
 import com.literature.russian_literature.users.db.UserRepository;
+
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
@@ -22,7 +23,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class BookRatingService {
-    private static final Logger log = LoggerFactory.getLogger(BookRatingService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(BookRatingService.class);
 
     private final BookRatingRepository ratingRepository;
     private final BookRatingMapper mapper;
@@ -40,13 +41,11 @@ public class BookRatingService {
         this.userRepository = userRepository;
     }
 
-    // Получить оценку пользователя для книги
     public Optional<BookRating> getUserRating(Long bookId, Long userId) {
         return ratingRepository.findByBookIdAndUserId(bookId, userId)
                 .map(mapper::toDomain);
     }
 
-    // Получить все оценки пользователя
     public List<BookRating> getUserRatings(Long userId) {
         validator.validateUserExists(userId);
         return ratingRepository.findByUserId(userId).stream()
@@ -54,15 +53,14 @@ public class BookRatingService {
                 .collect(Collectors.toList());
     }
 
-    // Поставить или обновить оценку
     @Transactional
     public BookRating saveOrUpdateRating(BookRating rating) {
         validator.validateForCreate(rating);
 
         BookEntity book = bookRepository.findById(rating.bookId())
-                .orElseThrow(() -> new EntityNotFoundException("Книга не найдена"));
+                .orElseThrow(() -> new EntityNotFoundException("Book not found"));
         UserEntity user = userRepository.findById(rating.userId())
-                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
         Optional<BookRatingEntity> existing = ratingRepository.findByBookIdAndUserId(rating.bookId(), rating.userId());
 
@@ -71,27 +69,25 @@ public class BookRatingService {
             entity = existing.get();
             entity.setRating(rating.rating());
             entity.setUpdatedAt(LocalDateTime.now());
-            log.info("Обновлена оценка для книги id={} от пользователя id={}: {}", rating.bookId(), rating.userId(), rating.rating());
+            LOG.info("Updated rating for bookId={}, userId={}, rating={}", rating.bookId(), rating.userId(), rating.rating());
         } else {
             entity = mapper.toEntity(rating, book, user);
             entity.setCreatedAt(LocalDateTime.now());
             entity.setUpdatedAt(LocalDateTime.now());
-            log.info("Создана новая оценка для книги id={} от пользователя id={}: {}", rating.bookId(), rating.userId(), rating.rating());
+            LOG.info("Created new rating for bookId={}, userId={}, rating={}", rating.bookId(), rating.userId(), rating.rating());
         }
 
         BookRatingEntity saved = ratingRepository.save(entity);
         return mapper.toDomain(saved);
     }
 
-    // Удалить оценку
     @Transactional
     public void deleteRating(Long bookId, Long userId) {
         validator.validateRatingExists(bookId, userId);
         ratingRepository.deleteByBookIdAndUserId(bookId, userId);
-        log.info("Удалена оценка для книги id={} от пользователя id={}", bookId, userId);
+        LOG.info("Deleted rating for bookId={}, userId={}", bookId, userId);
     }
 
-    // Получить статистику рейтинга книги
     public RatingSummary getBookRatingSummary(Long bookId) {
         validator.validateBookExists(bookId);
         Double avg = ratingRepository.findAverageRatingByBookId(bookId);
@@ -99,6 +95,6 @@ public class BookRatingService {
         return new RatingSummary(avg != null ? avg : 0.0, count != null ? count : 0);
     }
 
-    // DTO для сводки
-    public record RatingSummary(Double averageRating, Integer ratingCount) {}
+    public record RatingSummary(Double averageRating, Integer ratingCount) {
+    }
 }

@@ -3,6 +3,7 @@ package com.literature.russian_literature.catalog.domain;
 import com.literature.russian_literature.catalog.db.CatalogCategoryEntity;
 import com.literature.russian_literature.catalog.db.CatalogCategoryMapper;
 import com.literature.russian_literature.catalog.db.CatalogCategoryRepository;
+import com.literature.russian_literature.catalog.domain.dto.CatalogCategory;
 import com.literature.russian_literature.catalog.util.CatalogCategoryValidator;
 import com.literature.russian_literature.tags.db.TagEntity;
 import com.literature.russian_literature.tags.db.TagRepository;
@@ -16,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -25,7 +27,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class CatalogCategoryService {
-    private static final Logger log = LoggerFactory.getLogger(CatalogCategoryService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CatalogCategoryService.class);
 
     private final CatalogCategoryRepository repository;
     private final CatalogCategoryMapper mapper;
@@ -44,21 +46,19 @@ public class CatalogCategoryService {
         this.normalizer = normalizer;
     }
 
-    public List<CatalogCategory> getAllCategories() {
-        return repository.findAll().stream()
-                .map(mapper::toDomain)
-                .toList();
-    }
-
     public List<CatalogCategory> getCategoriesFiltered(Boolean isActive) {
-        if (isActive == null) return getAllCategories();
+        if (isActive == null) {
+            return repository.findAll().stream()
+                    .map(mapper::toDomain)
+                    .toList();
+        }
         return repository.findByIsActive(isActive).stream().map(mapper::toDomain).toList();
     }
 
     public CatalogCategory getCategoryById(Long id) {
         CatalogCategoryEntity entity = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Категория каталога с id = " + id + " не найдена"
+                        "Catalog category with id = " + id + " not found"
                 ));
         return mapper.toDomain(entity);
     }
@@ -66,7 +66,7 @@ public class CatalogCategoryService {
     public CatalogCategory getCategoryByCode(String code) {
         CatalogCategoryEntity entity = repository.findByCode(code)
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Категория каталога с кодом = " + code + " не найдена"
+                        "Catalog category with code = " + code + " not found"
                 ));
         return mapper.toDomain(entity);
     }
@@ -82,16 +82,15 @@ public class CatalogCategoryService {
         validator.validateCreate(tagIds);
 
         if (tagRepository.countExistingTagsByIds(tagIds) != tagIds.size()) {
-            throw new IllegalArgumentException("Некоторые теги не найдены, проверьте корректность вводимых данных");
+            throw new IllegalArgumentException("Some tags were not found, please check the input data");
         }
 
         Set<TagEntity> tags = new HashSet<>(tagRepository.findAllById(tagIds));
-        if (tags.isEmpty()) throw new IllegalArgumentException("Теги не найдены");
+        if (tags.isEmpty()) throw new IllegalArgumentException("Tags not found");
 
-        // Проверка, что нет двух тегов одного типа
         Set<TagType> types = tags.stream().map(TagEntity::getType).collect(Collectors.toSet());
         if (types.size() != tags.size()) {
-            throw new IllegalArgumentException("В категории не может быть двух тегов одного типа (например, два класса или два уровня)");
+            throw new IllegalArgumentException("A category cannot have two tags of the same type (e.g., two grades or two levels)");
         }
 
         String name = generateNameFromTags(tags);
@@ -114,7 +113,7 @@ public class CatalogCategoryService {
         entity.setUpdatedAt(LocalDateTime.now());
 
         CatalogCategoryEntity saved = repository.save(entity);
-        log.info("Создана кастомная категория: {}", saved.getName());
+        LOG.info("Created custom category: {}", saved.getName());
         return mapper.toDomain(saved);
     }
 
@@ -122,11 +121,11 @@ public class CatalogCategoryService {
     public CatalogCategory updateCategory(Long id, String name, Boolean isActive) {
         CatalogCategoryEntity existing = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Категория каталога с id = " + id + " не найдена"
+                        "Catalog category with id = " + id + " not found"
                 ));
 
         if (existing.getCriteriaType().equals("NEW") || existing.getCriteriaType().equals("POPULAR") || existing.getCriteriaType().equals("BY_PERIOD")) {
-            throw new IllegalArgumentException("Базовые категории нельзя редактировать");
+            throw new IllegalArgumentException("Base categories cannot be edited");
         }
 
         String normalizedName = normalizer.normalizeName(name);
@@ -137,7 +136,7 @@ public class CatalogCategoryService {
         existing.setUpdatedAt(LocalDateTime.now());
 
         CatalogCategoryEntity updated = repository.save(existing);
-        log.info("Обновлена категория каталога: '{}' (id: {})", updated.getName(), updated.getId());
+        LOG.info("Updated catalog category: '{}' (id: {})", updated.getName(), updated.getId());
         return mapper.toDomain(updated);
     }
 
@@ -145,19 +144,18 @@ public class CatalogCategoryService {
     public void deleteCategory(Long id) {
         CatalogCategoryEntity category = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Категория каталога с id = " + id + " не найдена"
+                        "Catalog category with id = " + id + " not found"
                 ));
 
         if (category.getCriteriaType().equals("NEW") || category.getCriteriaType().equals("POPULAR") || category.getCriteriaType().equals("BY_PERIOD")) {
-            throw new IllegalArgumentException("Нельзя удалить базовую категорию");
+            throw new IllegalArgumentException("Cannot delete a base category");
         }
 
         repository.deleteById(id);
-        log.info("Удалена категория каталога: '{}' (id: {})", category.getName(), id);
+        LOG.info("Deleted catalog category: '{}' (id: {})", category.getName(), id);
     }
 
     private String generateNameFromTags(Set<TagEntity> tags) {
-        // Сортировка по типу тега: GRADE, LEVEL, CATEGORY, READING_TYPE
         String raw = tags.stream()
                 .sorted(Comparator.comparingInt(t -> t.getType().ordinal()))
                 .map(t -> {

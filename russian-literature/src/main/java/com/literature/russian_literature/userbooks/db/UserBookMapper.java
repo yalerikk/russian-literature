@@ -1,6 +1,7 @@
 package com.literature.russian_literature.userbooks.db;
 
 import com.literature.russian_literature.userbooks.domain.UserBook;
+
 import org.springframework.stereotype.Component;
 
 @Component

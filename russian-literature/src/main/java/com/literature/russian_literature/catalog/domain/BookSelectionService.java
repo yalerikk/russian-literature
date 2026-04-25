@@ -2,14 +2,16 @@ package com.literature.russian_literature.catalog.domain;
 
 import com.literature.russian_literature.books.db.BookEntity;
 import com.literature.russian_literature.books.db.BookRepository;
-import com.literature.russian_literature.catalog.api.dto.BookForCatalogDto;
+import com.literature.russian_literature.catalog.domain.dto.BookForCatalogDto;
 import com.literature.russian_literature.catalog.db.BookForCatalogMapper;
+import com.literature.russian_literature.catalog.domain.dto.CatalogCategory;
 import com.literature.russian_literature.ratings.domain.BookRatingService;
-import org.springframework.data.domain.Page;
+
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,7 +26,6 @@ public class BookSelectionService {
         this.mapper = mapper;
     }
 
-    // Для главной страницы – первые booksToShow книг (List)
     public List<BookForCatalogDto> getBooksForCategory(CatalogCategory category) {
         List<BookEntity> books;
 
@@ -39,13 +40,12 @@ public class BookSelectionService {
                 books = getBooksByPeriod(category);
                 break;
             case CUSTOM:
-                // Используем спецификацию для CUSTOM
                 Specification<BookEntity> spec = buildSpecificationFromCustomCategory(category);
                 Pageable pageable = PageRequest.of(0, category.booksToShow());
                 books = bookRepository.findAll(spec, pageable).getContent();
                 break;
             default:
-                throw new IllegalArgumentException("Неизвестный тип критерия: " + category.criteriaType());
+                throw new IllegalArgumentException("Unknown criteria type: " + category.criteriaType());
         }
 
         int limit = Math.min(category.booksToShow(), books.size());
@@ -55,7 +55,6 @@ public class BookSelectionService {
                 .collect(Collectors.toList());
     }
 
-    // ---- Вспомогательные методы для List (главная) ----
     private List<BookEntity> getNewBooks(CatalogCategory category) {
         LocalDateTime startDate = LocalDateTime.now().minusDays(category.daysInterval());
         return bookRepository.findRecentBooks(startDate, category.booksToShow());
@@ -74,7 +73,6 @@ public class BookSelectionService {
         ).getContent();
     }
 
-    // Построение спецификации для CUSTOM-категорий (теги)
     private Specification<BookEntity> buildSpecificationFromCustomCategory(CatalogCategory category) {
         Specification<BookEntity> spec = (root, query, cb) -> cb.conjunction();
         if (category.tagIds() != null && !category.tagIds().isEmpty()) {

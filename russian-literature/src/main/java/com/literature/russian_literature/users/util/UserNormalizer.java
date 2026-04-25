@@ -2,6 +2,7 @@ package com.literature.russian_literature.users.util;
 
 import com.literature.russian_literature.users.domain.dto.User;
 import com.literature.russian_literature.util.StringNormalizer;
+
 import org.springframework.stereotype.Component;
 
 @Component
@@ -17,7 +18,7 @@ public class UserNormalizer {
                 user.id(),
                 stringNormalizer.normalizeSpaces(user.username()),
                 stringNormalizer.normalizeSpaces(user.email()),
-                user.password(), // Пароль не нормализуем!
+                user.password(),
                 user.role()
         );
     }

@@ -10,13 +10,18 @@ import com.literature.russian_literature.users.db.UserRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDateTime;
 
 @Service
 public class UserBookService {
+    private static final Logger LOG = LoggerFactory.getLogger(UserBookService.class);
+
     private final UserBookRepository repository;
     private final UserRepository userRepository;
     private final BookRepository bookRepository;
@@ -36,7 +41,6 @@ public class UserBookService {
                 .map(mapper::toDomain);
     }
 
-
     public Page<UserBook> getFavoriteBooks(Long userId, Pageable pageable) {
         return repository.findByUserIdAndIsFavoriteTrue(userId, pageable)
                 .map(mapper::toDomain);
@@ -54,13 +58,19 @@ public class UserBookService {
                 .orElse(null);
     }
 
+    public Integer getProgress(Long userId, Long bookId) {
+        return repository.findByUserIdAndBookIdAndStatus(userId, bookId, BookStatus.READING)
+                .map(UserBookEntity::getProgress)
+                .orElse(0);
+    }
+
     // Добавить или обновить статус книги для пользователя
     @Transactional
     public UserBook addOrUpdateBookStatus(Long userId, Long bookId, BookStatus status, Boolean favorite) {
         UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден"));
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
         BookEntity book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new EntityNotFoundException("Книга не найдена"));
+                .orElseThrow(() -> new EntityNotFoundException("Book not found"));
 
         UserBookEntity entry = repository.findByUserIdAndBookId(userId, bookId)
                 .orElse(new UserBookEntity());
@@ -95,11 +105,17 @@ public class UserBookService {
         if (entry.getStatus() == null && !entry.isFavorite()) {
             if (!isNew) {
                 repository.delete(entry);
+                LOG.info("Removed book from collection (addOrUpdateBookStatus): bookId={}, userId={}", bookId, userId);
             }
             return null;
         }
 
         UserBookEntity saved = repository.save(entry);
+        if (isNew) {
+            LOG.info("Added book to collection: bookId={}, userId={}, status={}, favorite={}", bookId, userId, status, favorite);
+        } else {
+            LOG.info("Updated book in collection: bookId={}, userId={}, status={}, favorite={}", bookId, userId, status, favorite);
+        }
         return mapper.toDomain(saved);
     }
 
@@ -107,10 +123,10 @@ public class UserBookService {
     @Transactional
     public void updateProgress(Long userId, Long bookId, Integer progress) {
         UserBookEntity entry = repository.findByUserIdAndBookId(userId, bookId)
-                .orElseThrow(() -> new EntityNotFoundException("Книга не найдена в коллекциях пользователя"));
+                .orElseThrow(() -> new EntityNotFoundException("Book not found in user's collection"));
 
         if (entry.getStatus() != BookStatus.READING) {
-            throw new IllegalStateException("Прогресс можно обновлять только для книг в статусе READING");
+            throw new IllegalStateException("Progress can only be updated for books with READING status");
         }
 
         entry.setProgress(progress);
@@ -120,13 +136,13 @@ public class UserBookService {
         }
         entry.setUpdatedAt(LocalDateTime.now());
         repository.save(entry);
+        LOG.info("Updated progress: bookId={}, userId={}, progress={}", bookId, userId, progress);
     }
 
-    // Удалить книгу из коллекции
     @Transactional
     public void removeFromCollection(Long userId, Long bookId, BookStatus status, Boolean favorite) {
         UserBookEntity entry = repository.findByUserIdAndBookId(userId, bookId)
-                .orElseThrow(() -> new EntityNotFoundException("Книга не найдена в коллекциях пользователя"));
+                .orElseThrow(() -> new EntityNotFoundException("Book not found in user's collection"));
 
         if (status != null && entry.getStatus() == status) {
             entry.setStatus(null);
@@ -138,9 +154,11 @@ public class UserBookService {
 
         if (entry.getStatus() == null && !entry.isFavorite()) {
             repository.delete(entry);
+            LOG.info("Removed book from collection: bookId={}, userId={}", bookId, userId);
         } else {
             entry.setUpdatedAt(LocalDateTime.now());
             repository.save(entry);
+            LOG.info("Updated book in collection (partial removal): bookId={}, userId={}", bookId, userId);
         }
     }
 }

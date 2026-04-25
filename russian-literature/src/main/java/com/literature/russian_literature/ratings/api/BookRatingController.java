@@ -7,6 +7,7 @@ import com.literature.russian_literature.security.SecurityUtils;
 import com.literature.russian_literature.users.db.UserEntity;
 import com.literature.russian_literature.users.domain.UserRole;
 import com.literature.russian_literature.users.domain.UserService;
+
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,25 +31,31 @@ public class BookRatingController {
     }
 
     @GetMapping("/book/{bookId}/summary")
-    public ResponseEntity<BookRatingService.RatingSummary> getBookRatingSummary(@PathVariable Long bookId) {
-        log.info("Called getBookRatingSummary for bookId={}", bookId);
+    public ResponseEntity<BookRatingService.RatingSummary> getBookRatingSummary(
+            @PathVariable Long bookId
+    ) {
+        log.info("Get rating summary for bookId={}", bookId);
         return ResponseEntity.ok(ratingService.getBookRatingSummary(bookId));
     }
 
     @GetMapping("/book/{bookId}/my-rating")
-    public ResponseEntity<BookRating> getMyRating(@PathVariable Long bookId) {
+    public ResponseEntity<BookRating> getMyRating(
+            @PathVariable Long bookId
+    ) {
         Long currentUserId = SecurityUtils.getCurrentUserId();
-        log.info("Called getMyRating for bookId={}, userId={}", bookId, currentUserId);
+        log.info("Get my rating for bookId={}, userId={}", bookId, currentUserId);
         return ratingService.getUserRating(bookId, currentUserId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<BookRating>> getUserRatings(@PathVariable Long userId) {
-        log.info("Called getUserRatings for userId={}", userId);
+    public ResponseEntity<List<BookRating>> getUserRatings(
+            @PathVariable Long userId
+    ) {
+        log.info("Get user ratings for userId={}", userId);
         Long currentUserId = SecurityUtils.getCurrentUserId();
-        UserEntity currentUser = userService.getUserEntityById(currentUserId); // нужен метод
+        UserEntity currentUser = userService.getUserEntityById(currentUserId);
         if (!currentUser.getRole().equals(UserRole.ADMIN) && !currentUserId.equals(userId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
@@ -56,19 +63,23 @@ public class BookRatingController {
     }
 
     @PostMapping
-    public ResponseEntity<BookRating> saveRating(@Valid @RequestBody BookRatingRequest request) {
+    public ResponseEntity<BookRating> saveRating(
+            @Valid @RequestBody BookRatingRequest request
+    ) {
         Long currentUserId = SecurityUtils.getCurrentUserId();
         BookRating rating = new BookRating(null, request.bookId(), currentUserId, request.rating(), null, null);
-        log.info("Called saveRating for bookId={}, userId={}, rating={}", rating.bookId(), rating.userId(), rating.rating());
         BookRating saved = ratingService.saveOrUpdateRating(rating);
+        log.info("Saved rating for bookId={}, userId={}, rating={}", saved.bookId(), saved.userId(), saved.rating());
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     @DeleteMapping("/book/{bookId}")
-    public ResponseEntity<Void> deleteMyRating(@PathVariable Long bookId) {
+    public ResponseEntity<Void> deleteMyRating(
+            @PathVariable Long bookId
+    ) {
         Long currentUserId = SecurityUtils.getCurrentUserId();
-        log.info("Called deleteMyRating for bookId={}, userId={}", bookId, currentUserId);
         ratingService.deleteRating(bookId, currentUserId);
+        log.info("Deleted rating for bookId={}, userId={}", bookId, currentUserId);
         return ResponseEntity.ok().build();
     }
 }

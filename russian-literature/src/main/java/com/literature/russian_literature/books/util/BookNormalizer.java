@@ -19,18 +19,11 @@ public class BookNormalizer {
                 book.publicationYear(),
                 stringNormalizer.replaceYo(book.description()),
                 book.authorId(),
-                stringNormalizer.normalizeUrl(book.coverUrl()),
+                stringNormalizer.normalizeSpaces(book.coverUrl()),
                 book.createdAt(),
                 book.updatedAt(),
-                book.genreIds(), // ID не нормализуем
-                book.tagIds() // ID не нормализуем
+                book.genreIds(),
+                book.tagIds()
         );
-    }
-
-    /**
-     * Нормализует текст для поиска
-     */
-    public String normalizeForSearch(String text) {
-        return stringNormalizer.normalizeForSearch(text);
     }
 }

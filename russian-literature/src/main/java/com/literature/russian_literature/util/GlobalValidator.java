@@ -8,13 +8,13 @@ import org.springframework.web.multipart.MultipartFile;
 public class GlobalValidator {
     public void validateNotBlank(String value, String fieldName) {
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(fieldName + " не может быть пустым");
+            throw new IllegalArgumentException(fieldName + " cannot be empty");
         }
     }
 
     public void validateBookFileFormat(MultipartFile file, BookFormat format) {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("Файл не может быть пустым");
+            throw new IllegalArgumentException("File cannot be empty");
         }
 
         String contentType = file.getContentType();
@@ -22,8 +22,8 @@ public class GlobalValidator {
         boolean valid = isFileValid(format, originalFilename, contentType);
 
         if (!valid) {
-            throw new IllegalArgumentException("Файл не соответствует формату " + format +
-                    ". Ожидаемый MIME-тип или расширение: " + format.name().toLowerCase());
+            throw new IllegalArgumentException("File does not match format " + format +
+                    ". Expected MIME type or extension: " + format.name().toLowerCase());
         }
     }
 
@@ -34,7 +34,7 @@ public class GlobalValidator {
         }
 
         return switch (format) {
-            case PDF -> "application/pdf".equals(contentType) || "pdf".equals(extension);
+            case PDF -> "application/pdf".equals(contentType) || "application/octet-stream".equals(contentType) || "pdf".equals(extension);
             case EPUB -> "application/epub+zip".equals(contentType) || "epub".equals(extension);
             case FB2 -> "application/fb2".equals(contentType) || "fb2".equals(extension) || "text/xml".equals(contentType);
             case TXT -> "text/plain".equals(contentType) || "txt".equals(extension);
@@ -43,14 +43,14 @@ public class GlobalValidator {
 
     public void validateImageFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("Файл изображения не может быть пустым");
+            throw new IllegalArgumentException("Image file cannot be empty");
         }
 
         String contentType = file.getContentType();
         boolean valid = isImageValid(file, contentType);
 
         if (!valid) {
-            throw new IllegalArgumentException("Файл должен быть изображением в формате JPG, JPEG или PNG");
+            throw new IllegalArgumentException("File must be an image in JPG, JPEG, or PNG format");
         }
     }
 
@@ -65,17 +65,10 @@ public class GlobalValidator {
                 extension.equals("pdf") || extension.equals("jpg") || extension.equals("jpeg") || extension.equals("png");
     }
 
-    public void validateFileUrl(String url) {
-        validateNotBlank(url, "File URL");
-        if (!url.matches("^(http|https)://.*\\.(pdf|epub|fb2|txt)$")) {
-            throw new IllegalArgumentException("URL файла должен быть действительным и заканчиваться на .pdf, .epub, .fb2 или .txt");
-        }
-    }
-
     public void validatePhotoUrl(String url) {
-        validateNotBlank(url, "URL изображения");
-        if (!url.matches("^(http|https)://.*\\.(pdf|jpg|jpeg|png)$")) {
-            throw new IllegalArgumentException("URL изображения должен быть действительным и заканчиваться на .pdf, .jpg, .jpeg или .png");
+        validateNotBlank(url, "Image URL");
+        if (!url.matches("^(http|https)://.*\\.(jpg|jpeg|png)$")) {
+            throw new IllegalArgumentException("Image URL must be valid and end with .jpg, .jpeg, or .png");
         }
     }
 }

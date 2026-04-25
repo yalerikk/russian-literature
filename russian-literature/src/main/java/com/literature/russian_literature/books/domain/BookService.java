@@ -7,15 +7,16 @@ import com.literature.russian_literature.books.util.BookNormalizer;
 import com.literature.russian_literature.books.util.BookValidator;
 import com.literature.russian_literature.authors.db.AuthorEntity;
 import com.literature.russian_literature.authors.db.AuthorRepository;
-import com.literature.russian_literature.catalog.domain.BookSelectionService;
-import com.literature.russian_literature.catalog.domain.CatalogCategory;
+import com.literature.russian_literature.catalog.domain.dto.CatalogCategory;
 import com.literature.russian_literature.catalog.domain.CatalogCategoryService;
 import com.literature.russian_literature.cloudinary.CloudinaryService;
 import com.literature.russian_literature.genres.db.GenreEntity;
 import com.literature.russian_literature.genres.db.GenreRepository;
+import com.literature.russian_literature.ratings.db.BookRatingRepository;
 import com.literature.russian_literature.tags.db.TagEntity;
 import com.literature.russian_literature.tags.db.TagRepository;
 import com.literature.russian_literature.tags.domain.TagType;
+import com.literature.russian_literature.userbooks.db.UserBookRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -33,7 +34,7 @@ import java.util.Set;
 
 @Service
 public class BookService {
-    private static final Logger log = LoggerFactory.getLogger(BookService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(BookService.class);
 
     private final BookRepository repository;
     private final BookMapper mapper;
@@ -45,11 +46,14 @@ public class BookService {
     private final TagRepository tagRepository;
     private final BookFileRepository bookFileRepository;
     private final CloudinaryService cloudinaryService;
+    private final UserBookRepository userBookRepository;
+    private final BookRatingRepository bookRatingRepository;
 
-    public BookService(BookRepository repository, BookMapper mapper,
-                       BookValidator validator, BookNormalizer normalizer, CatalogCategoryService catalogCategoryService,
+    public BookService(BookRepository repository, BookMapper mapper, BookValidator validator,
+                       BookNormalizer normalizer, CatalogCategoryService catalogCategoryService,
                        AuthorRepository authorRepository, GenreRepository genreRepository, TagRepository tagRepository,
-                       BookFileRepository bookFileRepository, CloudinaryService cloudinaryService) {
+                       BookFileRepository bookFileRepository, CloudinaryService cloudinaryService,
+                       UserBookRepository userBookRepository, BookRatingRepository bookRatingRepository) {
         this.repository = repository;
         this.mapper = mapper;
         this.validator = validator;
@@ -60,95 +64,65 @@ public class BookService {
         this.tagRepository = tagRepository;
         this.bookFileRepository = bookFileRepository;
         this.cloudinaryService = cloudinaryService;
+        this.userBookRepository = userBookRepository;
+        this.bookRatingRepository = bookRatingRepository;
     }
 
-    public Book getBookById (
-            Long id
-    ) {
+    public Book getBookById(Long id) {
         BookEntity bookEntity = repository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Книга с id = " + id + " не найдена"
-                ));
-
+                .orElseThrow(() -> new EntityNotFoundException("Book with id = " + id + " not found"));
         return mapper.toDomain(bookEntity);
     }
 
-    public Page<BookEntity> getBooksByAuthorPage(Long authorId, Pageable pageable) {
-        if (!authorRepository.existsById(authorId)) {
-            throw new EntityNotFoundException("Автор с id = " + authorId + " не найден");
-        }
-        return repository.findByAuthorId(authorId, pageable);
+    public String getBookFileUrlByFormat(Long bookId, BookFormat format) {
+        BookFileEntity file = bookFileRepository.findByBookIdAndFormat(bookId, format)
+                .orElseThrow(() -> new EntityNotFoundException("File of format " + format + " not found for book id=" + bookId));
+        return file.getFileUrl();
     }
 
-    public Page<BookEntity> getBooksByGenrePage(Long genreId, Pageable pageable) {
-        if (!genreRepository.existsById(genreId)) {
-            throw new EntityNotFoundException("Жанр с id = " + genreId + " не найден");
-        }
-        return repository.findByGenres_Id(genreId, pageable);
-    }
-
-    public Page<BookEntity> getBooksByTagPage(Long tagId, Pageable pageable) {
-        if (!tagRepository.existsById(tagId)) {
-            throw new EntityNotFoundException("Тег с id = " + tagId + " не найден");
-        }
-        return repository.findByTags_Id(tagId, pageable);
-    }
-
-    public List<Book> getAllBooks() {
-        List<BookEntity> allBooks = repository.findAll();
-
-        return allBooks.stream()
-                .map(mapper::toDomain)
-                .toList();
+    public Page<BookEntity> getAllBooks(Pageable pageable) {
+        return repository.findAll(pageable);
     }
 
     @Transactional
     public Book createBook(Book bookToCreate) {
-        // Нормализация перед валидацией
         Book normalizedBook = normalizer.normalizeBook(bookToCreate);
         validator.validateForCreate(normalizedBook);
 
         AuthorEntity author = authorRepository.findById(normalizedBook.authorId())
-                .orElseThrow(() -> new EntityNotFoundException("Автор с id = " + normalizedBook.authorId() + " не найден"));
+                .orElseThrow(() -> new EntityNotFoundException("Author with id = " + normalizedBook.authorId() + " not found"));
 
-        // Загружаем жанры и теги по ID
         var genres = genreRepository.findAllById(normalizedBook.genreIds());
         var tags = tagRepository.findAllById(normalizedBook.tagIds());
 
-        // Преобразуем в Set для маппера
         Set<GenreEntity> genreSet = new HashSet<>(genres);
         Set<TagEntity> tagSet = new HashSet<>(tags);
 
         var entityToSave = mapper.toEntity(normalizedBook, author, genreSet, tagSet);
 
-        // Устанавливаем даты создания/обновления
         LocalDateTime now = LocalDateTime.now();
         entityToSave.setCreatedAt(now);
         entityToSave.setUpdatedAt(now);
 
         var savedEntity = repository.save(entityToSave);
-        log.info("Создана книга: '{}' автора {}", savedEntity.getTitle(), author.getFullName());
-
+        LOG.info("Created book: '{}' by author {}", savedEntity.getTitle(), author.getFullName());
         return mapper.toDomain(savedEntity);
     }
 
     @Transactional
     public Book updateBook(Long id, Book book) {
         BookEntity existing = repository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Книга с id = " + id + " не найдена"));
+                .orElseThrow(() -> new EntityNotFoundException("Book with id = " + id + " not found"));
 
-        // Нормализация перед валидацией
         Book normalizedBook = normalizer.normalizeBook(book);
         validator.validateForUpdate(id, normalizedBook);
 
         AuthorEntity author = authorRepository.findById(normalizedBook.authorId())
-                .orElseThrow(() -> new EntityNotFoundException("Автор с id = " + normalizedBook.authorId() + " не найден"));
+                .orElseThrow(() -> new EntityNotFoundException("Author with id = " + normalizedBook.authorId() + " not found"));
 
-        // Загружаем жанры и теги по ID
         var genres = genreRepository.findAllById(normalizedBook.genreIds());
         var tags = tagRepository.findAllById(normalizedBook.tagIds());
 
-        // Обновляем поля
         existing.setTitle(normalizedBook.title());
         existing.setPublicationYear(normalizedBook.publicationYear());
         existing.setDescription(normalizedBook.description());
@@ -159,42 +133,42 @@ public class BookService {
         existing.setUpdatedAt(LocalDateTime.now());
 
         BookEntity updated = repository.save(existing);
-        log.info("Обновлена книга: '{}'", updated.getTitle());
+        LOG.info("Updated book: '{}'", updated.getTitle());
         return mapper.toDomain(updated);
     }
 
+    @Transactional
     public void deleteBook(Long id) {
         var book = repository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Книга с id = " + id + " не найдена"));
+                .orElseThrow(() -> new EntityNotFoundException("Book with id = " + id + " not found"));
 
-        // 1. Удаляем все файлы книги (из БД и Cloudinary)
         List<BookFileEntity> files = bookFileRepository.findByBookId(id);
         for (BookFileEntity file : files) {
             deleteFileFromBook(id, file.getId());
         }
 
-        // 2. Удаляем обложку из Cloudinary, если она есть
         try {
             if (book.getCoverUrl() != null && !book.getCoverUrl().isBlank()) {
                 String publicId = CloudinaryService.extractPublicIdFromUrl(book.getCoverUrl());
                 cloudinaryService.deleteFile(publicId, "image");
-                log.info("Обложка книги удалена из Cloudinary: {}", publicId);
+                LOG.info("Cover deleted from Cloudinary: {}", publicId);
             }
-        } catch (Exception e) { // Не прерываем удаление книги
-            log.error("Ошибка при удалении файлов из Cloudinary для книги id={}: {}", id, e.getMessage());
+        } catch (Exception e) {
+            LOG.error("Failed to delete cover from Cloudinary for book id={}: {}", id, e.getMessage());
         }
 
+        userBookRepository.deleteByBookId(id);
+        bookRatingRepository.deleteByBookId(id);
         repository.deleteById(id);
-        log.info("Удалена книга: '{}' с id = {},", book.getTitle(), id);
+        LOG.info("Deleted book: '{}' with id = {}", book.getTitle(), id);
     }
 
     public Page<BookEntity> filterBooks(List<Long> genreIds, String grade, String level,
-            String literature, String readingType, String categoryCode, String searchQuery, Long authorId,
-            Pageable pageable
+                                        String literature, String readingType, String categoryCode, String searchQuery, Long authorId,
+                                        Pageable pageable
     ) {
         Specification<BookEntity> spec = (root, query, cb) -> cb.conjunction();
 
-        // 1. Фильтр по жанрам
         if (genreIds != null && !genreIds.isEmpty()) {
             spec = spec.and((root, q, cb) -> {
                 var genresJoin = root.join("genres");
@@ -202,13 +176,11 @@ public class BookService {
             });
         }
 
-        // 2. Фильтры по тегам (учебные)
         spec = spec.and(BookSpecifications.byTagTypeAndName(TagType.GRADE, grade))
                 .and(BookSpecifications.byTagTypeAndName(TagType.LEVEL, level))
                 .and(BookSpecifications.byTagTypeAndName(TagType.CATEGORY, literature))
                 .and(BookSpecifications.byTagTypeAndName(TagType.READING_TYPE, readingType));
 
-        // 3. Категория
         if (categoryCode != null && !categoryCode.isBlank()) {
             CatalogCategory category = catalogCategoryService.getCategoryByCode(categoryCode);
             if ("POPULAR".equals(category.criteriaType())) {
@@ -222,14 +194,12 @@ public class BookService {
             }
         }
 
-        // 4. Поиск по названию
         if (searchQuery != null && !searchQuery.isBlank()) {
             spec = spec.and((root, q, cb) ->
                     cb.like(cb.lower(root.get("title")), "%" + searchQuery.toLowerCase() + "%")
             );
         }
 
-        // 5. Фильтр по автору
         if (authorId != null) {
             spec = spec.and((root, q, cb) ->
                     cb.equal(root.get("author").get("id"), authorId)
@@ -237,6 +207,63 @@ public class BookService {
         }
 
         return repository.findAll(spec, pageable);
+    }
+
+    public List<BookFileResponse> getFilesByBookId(Long bookId) {
+        List<BookFileEntity> files = bookFileRepository.findByBookId(bookId);
+        return files.stream()
+                .map(f -> new BookFileResponse(f.getId(), f.getFileUrl(), f.getFormat(), f.getPublicId()))
+                .toList();
+    }
+
+    @Transactional
+    public BookFileResponse addFileToBook(Long bookId, String fileUrl, BookFormat format, String publicId) {
+        BookEntity book = repository.findById(bookId)
+                .orElseThrow(() -> new EntityNotFoundException("Book not found"));
+
+        if (bookFileRepository.existsByBookIdAndFormat(bookId, format)) {
+            throw new IllegalArgumentException("File of format " + format + " already exists for this book");
+        }
+
+        if (format != BookFormat.PDF) {
+            boolean hasPdf = bookFileRepository.existsByBookIdAndFormat(bookId, BookFormat.PDF);
+            if (!hasPdf) {
+                throw new IllegalArgumentException("You must upload PDF file first");
+            }
+        }
+
+        BookFileEntity file = new BookFileEntity();
+        file.setBook(book);
+        file.setFileUrl(fileUrl);
+        file.setFormat(format);
+        file.setPublicId(publicId);
+        file.setCreatedAt(LocalDateTime.now());
+
+        BookFileEntity saved = bookFileRepository.save(file);
+        LOG.info("Added {} file for book id={}", format, bookId);
+        return new BookFileResponse(saved.getId(), saved.getFileUrl(), saved.getFormat(), saved.getPublicId());
+    }
+
+    @Transactional
+    public void deleteFileFromBook(Long bookId, Long fileId) {
+        BookFileEntity file = bookFileRepository.findById(fileId)
+                .orElseThrow(() -> new EntityNotFoundException("File not found"));
+
+        if (!file.getBook().getId().equals(bookId)) {
+            throw new IllegalArgumentException("File does not belong to the specified book");
+        }
+
+        if (file.getPublicId() != null && !file.getPublicId().isBlank()) {
+            try {
+                cloudinaryService.deleteFile(file.getPublicId(), "raw");
+                LOG.info("Deleted file from Cloudinary: {}", file.getPublicId());
+            } catch (Exception e) {
+                LOG.error("Failed to delete file from Cloudinary: {}", e.getMessage());
+            }
+        }
+
+        bookFileRepository.delete(file);
+        LOG.info("Deleted file id={} from book id={}", fileId, bookId);
     }
 
     private Specification<BookEntity> buildCategorySpecification(CatalogCategory category) {
@@ -261,62 +288,5 @@ public class BookService {
             };
             default -> (root, query, cb) -> cb.conjunction();
         };
-    }
-
-    public String getBookFileUrlByFormat(Long bookId, BookFormat format) {
-        BookFileEntity file = bookFileRepository.findByBookIdAndFormat(bookId, format)
-                .orElseThrow(() -> new EntityNotFoundException("Файл формата " + format + " не найден для книги id=" + bookId));
-        return file.getFileUrl();
-    }
-
-    @Transactional
-    public BookFileResponse addFileToBook(Long bookId, String fileUrl, BookFormat format, String publicId) {
-        BookEntity book = repository.findById(bookId)
-                .orElseThrow(() -> new EntityNotFoundException("Книга не найдена"));
-
-        // Проверка на дублирование формата
-        if (bookFileRepository.existsByBookIdAndFormat(bookId, format)) {
-            throw new IllegalArgumentException("Файл формата " + format + " уже существует для этой книги");
-        }
-
-        BookFileEntity file = new BookFileEntity();
-        file.setBook(book);
-        file.setFileUrl(fileUrl);
-        file.setFormat(format);
-        file.setPublicId(publicId);
-        file.setCreatedAt(LocalDateTime.now());
-
-        BookFileEntity saved = bookFileRepository.save(file);
-        return new BookFileResponse(saved.getId(), saved.getFileUrl(), saved.getFormat(), saved.getPublicId());
-    }
-
-    @Transactional
-    public void deleteFileFromBook(Long bookId, Long fileId) {
-        BookFileEntity file = bookFileRepository.findById(fileId)
-                .orElseThrow(() -> new EntityNotFoundException("Файл не найден"));
-
-        if (!file.getBook().getId().equals(bookId)) {
-            throw new IllegalArgumentException("Файл не принадлежит указанной книге");
-        }
-
-        // Удаляем из Cloudinary, если есть publicId
-        if (file.getPublicId() != null && !file.getPublicId().isBlank()) {
-            try {
-                cloudinaryService.deleteFile(file.getPublicId(), "raw");
-                log.info("Файл удалён из Cloudinary: {}", file.getPublicId());
-            } catch (Exception e) { // Не прерываем удаление из БД
-                log.error("Ошибка при удалении файла из Cloudinary: {}", e.getMessage());
-            }
-        }
-
-        bookFileRepository.delete(file);
-        log.info("Файл (id={}) удалён из БД для книги id={}", fileId, bookId);
-    }
-
-    public List<BookFileResponse> getFilesByBookId(Long bookId) {
-        List<BookFileEntity> files = bookFileRepository.findByBookId(bookId);
-        return files.stream()
-                .map(f -> new BookFileResponse(f.getId(), f.getFileUrl(), f.getFormat(), f.getPublicId()))
-                .toList();
     }
 }

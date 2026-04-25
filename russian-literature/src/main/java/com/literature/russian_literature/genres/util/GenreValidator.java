@@ -3,6 +3,7 @@ package com.literature.russian_literature.genres.util;
 import com.literature.russian_literature.genres.domain.Genre;
 import com.literature.russian_literature.genres.db.GenreRepository;
 import com.literature.russian_literature.util.GlobalValidator;
+
 import org.springframework.stereotype.Component;
 
 @Component
@@ -26,16 +27,16 @@ public class GenreValidator {
     }
 
     private void validateRequiredFields(Genre genre) {
-        globalValidator.validateNotBlank(genre.name(), "Название жанра");
+        globalValidator.validateNotBlank(genre.name(), "Genre name");
 
         if (genre.name().length() > 50) {
-            throw new IllegalArgumentException("Название жанра не должно превышать 50 символов");
+            throw new IllegalArgumentException("Genre name must not exceed 50 characters");
         }
     }
 
     private void validateNameUniqueness(String name) {
         if (repository.existsByName(name)) {
-            throw new IllegalArgumentException("Жанр с названием '" + name + "' уже существует");
+            throw new IllegalArgumentException("Genre with name '" + name + "' already exists");
         }
     }
 
@@ -43,7 +44,7 @@ public class GenreValidator {
         repository.findByName(name)
                 .ifPresent(existing -> {
                     if (!existing.getId().equals(id)) {
-                        throw new IllegalArgumentException("Жанр с названием '" + name + "' уже существует");
+                        throw new IllegalArgumentException("Genre with name '" + name + "' already exists");
                     }
                 });
     }

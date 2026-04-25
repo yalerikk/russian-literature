@@ -1,6 +1,7 @@
 package com.literature.russian_literature.authors.domain.dto;
 
 import jakarta.validation.constraints.*;
+
 import java.time.LocalDate;
 
 public record Author(
@@ -28,4 +29,6 @@ public record Author(
         String biography,
 
         String photoUrl
-) {}
+) {
+
+}

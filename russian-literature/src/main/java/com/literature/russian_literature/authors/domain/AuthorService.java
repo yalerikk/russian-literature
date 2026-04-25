@@ -15,13 +15,15 @@ import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
 public class AuthorService {
-    private static final Logger log = LoggerFactory.getLogger(AuthorService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AuthorService.class);
 
     private final AuthorRepository repository;
     private final AuthorMapper mapper;
@@ -29,7 +31,6 @@ public class AuthorService {
     private final AuthorNormalizer normalizer;
     private final BookRepository bookRepository;
     private final CloudinaryService cloudinaryService;
-    //private final BookService bookService;
 
     @Autowired
     public AuthorService(AuthorRepository repository, AuthorMapper mapper,
@@ -43,12 +44,10 @@ public class AuthorService {
         this.cloudinaryService = cloudinaryService;
     }
 
-    public Author getAuthorById (
-            Long id
-    ) {
+    public Author getAuthorById(Long id) {
         AuthorEntity authorEntity = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Автор с id = " + id + " не найден"
+                        "Author with id = " + id + " not found"
                 ));
 
         return mapper.toDomain(authorEntity);
@@ -63,29 +62,33 @@ public class AuthorService {
                 .toList();
     }
 
+    public Page<AuthorEntity> getAllAuthorsForAdmin(Pageable pageable) {
+        return repository.findAll(pageable);
+    }
+
+    public List<AuthorForSelect> getAuthorsForSelect() {
+        return repository.findAllForSelect();
+    }
+
     @Transactional
-    public Author createAuthor(
-            Author authorToCreate
-    ) {
-        // Нормализация –> Валидация
+    public Author createAuthor(Author authorToCreate) {
         Author normalizedAuthor = normalizer.normalizeAuthor(authorToCreate);
         validator.validateCreate(normalizedAuthor);
 
         var entityToSave = mapper.toEntity(normalizedAuthor);
         var savedEntity = repository.save(entityToSave);
-        log.info("Создан автор: '{}' с id = {}", savedEntity.getFullName(), savedEntity.getId());
+        LOG.info("Created author: '{}' with id = {}", savedEntity.getFullName(), savedEntity.getId());
         return mapper.toDomain(savedEntity);
     }
 
     @Transactional
     public Author updateAuthor(Long id, Author author) {
         AuthorEntity existing = repository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Автор с id = " + id + " не найден"));
+                .orElseThrow(() -> new EntityNotFoundException("Author with id = " + id + " not found"));
 
         validator.validateUpdate(id, author);
         Author normalizedAuthor = normalizer.normalizeAuthor(author);
 
-        // Обновляем поля
         existing.setFirstName(normalizedAuthor.firstName());
         existing.setLastName(normalizedAuthor.lastName());
         existing.setMiddleName(normalizedAuthor.middleName());
@@ -95,35 +98,30 @@ public class AuthorService {
         existing.setPhotoUrl(normalizedAuthor.photoUrl());
 
         AuthorEntity updated = repository.save(existing);
-        log.info("Обновлен автор: '{}' с id = {}", updated.getFullName(), updated.getId());
+        LOG.info("Updated author: '{}' with id = {}", updated.getFullName(), updated.getId());
         return mapper.toDomain(updated);
     }
 
     @Transactional
     public void deleteAuthor(Long id) {
         var author = repository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Автор с id = " + id + " не найден"));
+                .orElseThrow(() -> new EntityNotFoundException("Author with id = " + id + " not found"));
 
         if (bookRepository.existsByAuthorId(id)) {
-            throw new IllegalStateException("Невозможно удалить автора '" + author.getFullName() +
-                    "', так как у него есть книги. Сначала удалите или переназначьте книги.");
+            throw new IllegalStateException("Unable to delete author '" + author.getFullName() +
+                    "', because he(she) has books. Delete or reassign the books first.");
         }
 
-        // Удаляем фото из Cloudinary, если оно есть
         try {
             if (author.getPhotoUrl() != null && !author.getPhotoUrl().isBlank()) {
                 String publicId = CloudinaryService.extractPublicIdFromUrl(author.getPhotoUrl());
-                    cloudinaryService.deleteFile(publicId, "image");
+                cloudinaryService.deleteFile(publicId, "image");
             }
-        } catch (Exception e) { // Не прерываем удаление автора
-            log.error("Ошибка при удалении фото автора из Cloudinary: {}", e.getMessage());
+        } catch (Exception e) {
+            LOG.error("Error deleting author's photo from Cloudinary: {}", e.getMessage());
         }
 
         repository.deleteById(id);
-        log.info("Удален автор: '{}' с id = {}", author.getFullName(), id);
-    }
-
-    public List<AuthorForSelect> getAuthorsForSelect() {
-        return repository.findAllForSelect();
+        LOG.info("Deleted author: '{}' with id = {}", author.getFullName(), id);
     }
 }

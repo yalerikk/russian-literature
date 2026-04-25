@@ -1,6 +1,7 @@
 package com.literature.russian_literature.ratings.db;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -11,6 +12,7 @@ import java.util.Optional;
 @Repository
 public interface BookRatingRepository extends JpaRepository<BookRatingEntity, Long> {
     Optional<BookRatingEntity> findByBookIdAndUserId(Long bookId, Long userId);
+
     List<BookRatingEntity> findByUserId(Long userId);
 
     @Query("SELECT AVG(r.rating) FROM BookRatingEntity r WHERE r.book.id = :bookId")
@@ -20,5 +22,14 @@ public interface BookRatingRepository extends JpaRepository<BookRatingEntity, Lo
     Integer countByBookId(@Param("bookId") Long bookId);
 
     boolean existsByBookIdAndUserId(Long bookId, Long userId);
+
     void deleteByBookIdAndUserId(Long bookId, Long userId);
+
+    @Modifying
+    @Query("DELETE FROM BookRatingEntity r WHERE r.user.id = :userId")
+    void deleteByUserId(@Param("userId") Long userId);
+
+    @Modifying
+    @Query("DELETE FROM BookRatingEntity r WHERE r.book.id = :bookId")
+    void deleteByBookId(@Param("bookId") Long bookId);
 }

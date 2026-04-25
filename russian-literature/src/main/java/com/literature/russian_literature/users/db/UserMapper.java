@@ -1,6 +1,7 @@
 package com.literature.russian_literature.users.db;
 
 import com.literature.russian_literature.users.domain.dto.User;
+
 import org.springframework.stereotype.Component;
 
 @Component
@@ -10,7 +11,7 @@ public class UserMapper {
                 entity.getId(),
                 entity.getUsername(),
                 entity.getEmail(),
-                entity.getPassword(), // Внимание: пароль в открытом виде!
+                entity.getPassword(),
                 entity.getRole()
         );
     }
@@ -20,7 +21,7 @@ public class UserMapper {
                 user.id(),
                 user.username(),
                 user.email(),
-                user.password(), // Нужно будет шифровать перед сохранением!
+                user.password(),
                 user.role()
         );
     }

@@ -4,8 +4,8 @@ import com.literature.russian_literature.books.domain.BookFormat;
 import com.literature.russian_literature.books.domain.BookService;
 import com.literature.russian_literature.books.domain.dto.BookFileResponse;
 import com.literature.russian_literature.cloudinary.CloudinaryService;
-
 import com.literature.russian_literature.util.GlobalValidator;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -19,7 +19,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/books/{bookId}/files")
 public class BookFileController {
-    private static final Logger log = LoggerFactory.getLogger(BookFileController.class);
+    private static final Logger LOG = LoggerFactory.getLogger(BookFileController.class);
 
     private final BookService bookService;
     private final CloudinaryService cloudinaryService;
@@ -33,9 +33,13 @@ public class BookFileController {
     }
 
     @GetMapping
-    public ResponseEntity<List<BookFileResponse>> getFiles(@PathVariable Long bookId) {
-        log.info("Получение файлов для книги id={}", bookId);
-        return ResponseEntity.ok(bookService.getFilesByBookId(bookId));
+    public ResponseEntity<List<BookFileResponse>> getFiles(
+            @PathVariable Long bookId
+    ) {
+        LOG.info("Fetching files for book id={}", bookId);
+        List<BookFileResponse> files = bookService.getFilesByBookId(bookId);
+        LOG.info("Found {} files for book id={}", files.size(), bookId);
+        return ResponseEntity.ok(files);
     }
 
     @PostMapping
@@ -45,27 +49,27 @@ public class BookFileController {
             @RequestParam("format") BookFormat format
     ) {
         try {
-            // 1. Валидация формата файла
             globalValidator.validateBookFileFormat(file, format);
 
-            // 2. Загрузить в Cloudinary
             String url = cloudinaryService.uploadFile(file, "books");
             String publicId = CloudinaryService.extractPublicIdFromUrl(url);
 
-            // 3. Сохраняем информацию в БД
             BookFileResponse response = bookService.addFileToBook(bookId, url, format, publicId);
-            log.info("Файл {} для книги {} загружен", format, bookId);
+            LOG.info("Uploaded {} file for book id={}", format, bookId);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (Exception e) {
-            log.error("Ошибка загрузки файла для книги {}: {}", bookId, e.getMessage());
+            LOG.error("Failed to upload file for book id={}: {}", bookId, e.getMessage());
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
     @DeleteMapping("/{fileId}")
-    public ResponseEntity<Void> deleteFile(@PathVariable Long bookId, @PathVariable Long fileId) {
-        log.info("Удаление файла {} для книги {}", fileId, bookId);
+    public ResponseEntity<Void> deleteFile(
+            @PathVariable Long bookId,
+            @PathVariable Long fileId
+    ) {
         bookService.deleteFileFromBook(bookId, fileId);
+        LOG.info("Deleted file id={} from book id={}", fileId, bookId);
         return ResponseEntity.noContent().build();
     }
 }

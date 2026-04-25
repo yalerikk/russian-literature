@@ -11,7 +11,6 @@ import java.time.LocalDate;
 
 @Component
 public class AuthorValidator {
-
     private final AuthorRepository repository;
     private final GlobalValidator globalValidator;
 
@@ -37,64 +36,62 @@ public class AuthorValidator {
     }
 
     private void validateRequiredFields(Author author) {
-        globalValidator.validateNotBlank(author.firstName(), "Имя");
-        globalValidator.validateNotBlank(author.lastName(), "Фамилия");
-        globalValidator.validateNotBlank(author.middleName(), "Отчество");
-        globalValidator.validateNotBlank(author.biography(), "Биография");
+        globalValidator.validateNotBlank(author.firstName(), "First name");
+        globalValidator.validateNotBlank(author.lastName(), "Last name");
+        globalValidator.validateNotBlank(author.middleName(), "Middle name");
+        globalValidator.validateNotBlank(author.biography(), "Biography");
 
-        // Дополнительная проверка длины после нормализации
         if (author.firstName().length() > 50) {
-            throw new IllegalArgumentException("Имя не должно превышать 50 символов");
+            throw new IllegalArgumentException("First name must not exceed 50 characters");
         }
         if (author.lastName().length() > 50) {
-            throw new IllegalArgumentException("Фамилия не должна превышать 50 символов");
+            throw new IllegalArgumentException("Last name must not exceed 50 characters");
         }
         if (author.middleName().length() > 50) {
-            throw new IllegalArgumentException("Отчество не должно превышать 50 символов");
+            throw new IllegalArgumentException("Middle name must not exceed 50 characters");
         }
     }
 
     private void validateFullNameUniqueness(String firstName, String lastName, String middleName) {
         if (repository.existsByFullName(firstName, lastName, middleName)) {
-            throw new IllegalArgumentException("Автор с таким ФИО уже существует");
+            throw new IllegalArgumentException("An author with the same full name already exists");
         }
     }
 
     private void validateFullNameUniquenessOnUpdate(Long id, String firstName, String lastName, String middleName) {
         if (repository.existsByFullNameExcludingId(firstName, lastName, middleName, id)) {
-            throw new IllegalArgumentException("Автор с таким ФИО уже существует");
+            throw new IllegalArgumentException("An author with the same full name already exists");
         }
     }
 
     private void validateBiographyLength(String biography) {
         if (biography.length() < 10) {
-            throw new IllegalArgumentException("Биография должна содержать не менее 10 символов");
+            throw new IllegalArgumentException("Biography must contain at least 10 characters");
         }
         if (biography.length() > 2000) {
-            throw new IllegalArgumentException("Биография не должна превышать 2000 символов");
+            throw new IllegalArgumentException("Biography must not exceed 2000 characters");
         }
     }
 
     private void validateDates(LocalDate birthDate, LocalDate deathDate) {
         if (birthDate == null) {
-            throw new IllegalArgumentException("Дата рождения обязательна");
+            throw new IllegalArgumentException("Birth date is required");
         }
         if (birthDate.isAfter(LocalDate.now())) {
-            throw new IllegalArgumentException("Дата рождения не может быть в будущем");
+            throw new IllegalArgumentException("Birth date cannot be in the future");
         }
         if (deathDate != null) {
             if (deathDate.isBefore(birthDate)) {
-                throw new IllegalArgumentException("Дата смерти не может быть раньше даты рождения");
+                throw new IllegalArgumentException("Death date cannot be earlier than the birth date");
             }
             if (deathDate.isAfter(LocalDate.now())) {
-                throw new IllegalArgumentException("Дата смерти не может быть в будущем");
+                throw new IllegalArgumentException("Death date cannot be in the future");
             }
             if (deathDate.isEqual(birthDate)) {
-                throw new IllegalArgumentException("Дата смерти не может быть равна дате рождения");
+                throw new IllegalArgumentException("Death date cannot be the same as the birth date");
             }
-            // Проверка на минимальный и максимальный возраст
             if (deathDate.isBefore(birthDate.plusYears(10)) || deathDate.isAfter(birthDate.plusYears(150))) {
-                throw new IllegalArgumentException("Дата смерти нереалистична - автор не мог умереть в таком возрасте");
+                throw new IllegalArgumentException("Death date is unrealistic — the author could not die at this age");
             }
         }
     }

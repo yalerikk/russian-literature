@@ -8,24 +8,14 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Set;
 
 @Repository
 public interface BookRepository extends JpaRepository<BookEntity, Long>, JpaSpecificationExecutor<BookEntity> {
     // ----- Пагинируемые запросы (Page) -----
-    Page<BookEntity> findByAuthorId(Long authorId, Pageable pageable);
-    Page<BookEntity> findByGenres_Id(Long genreId, Pageable pageable);
-    Page<BookEntity> findByTags_Id(Long tagId, Pageable pageable);
     Page<BookEntity> findByPublicationYearBetween(Integer minYear, Integer maxYear, Pageable pageable);
-    Page<BookEntity> findByCreatedAtAfterOrderByCreatedAtDesc(LocalDateTime startDate, Pageable pageable);
-
-    @Query("SELECT b FROM BookEntity b " +
-            "LEFT JOIN b.ratings r " +
-            "GROUP BY b.id " +
-            "ORDER BY COALESCE(AVG(r.rating), 0) DESC, COUNT(r.id) DESC")
-    Page<BookEntity> findTopBooksByRating(Pageable pageable);
 
     // ----- Непагинируемые запросы (List) для слайдеров -----
     @Query(value = "SELECT * FROM books WHERE created_at >= :startDate ORDER BY created_at DESC LIMIT :limit",
@@ -40,9 +30,6 @@ public interface BookRepository extends JpaRepository<BookEntity, Long>, JpaSpec
     List<BookEntity> findTopBooksByRating(@Param("limit") int limit);
 
     // ----- Поиск -----
-    @Query("SELECT b FROM BookEntity b WHERE LOWER(b.title) LIKE LOWER(CONCAT('%', :query, '%'))")
-    Page<BookEntity> searchByTitle(@Param("query") String query, Pageable pageable);
-
     @Query("SELECT b FROM BookEntity b WHERE LOWER(b.title) LIKE LOWER(CONCAT('%', :query, '%'))")
     List<BookEntity> findTopByTitleContaining(@Param("query") String query, Pageable pageable); // для автокомплита
 
@@ -63,7 +50,9 @@ public interface BookRepository extends JpaRepository<BookEntity, Long>, JpaSpec
                                                 @Param("excludeId") Long excludeId);
 
     boolean existsByAuthorId(Long authorId);
+
     boolean existsByGenres_Id(Long genreId);
+
     boolean existsByTags_Id(Long tagId);
 
     @Modifying

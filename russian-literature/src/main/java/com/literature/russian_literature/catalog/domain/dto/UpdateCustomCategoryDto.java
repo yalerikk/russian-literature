@@ -1,4 +1,4 @@
-package com.literature.russian_literature.catalog.api.dto;
+package com.literature.russian_literature.catalog.domain.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

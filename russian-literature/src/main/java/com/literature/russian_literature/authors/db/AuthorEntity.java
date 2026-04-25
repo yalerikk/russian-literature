@@ -33,29 +33,14 @@ public class AuthorEntity {
 
     private String photoUrl;
 
-    /**
-     * Полное ФИО автора
-     */
     public String getFullName() {
         return lastName + " " + firstName +
                 (middleName != null ? " " + middleName : "");
     }
 
-    /**
-     * Краткое ФИО (для отображения в списках)
-     */
     public String getShortName() {
         return lastName + " " +
                 firstName.charAt(0) + "." +
                 (middleName != null ? middleName.charAt(0) + "." : "");
-    }
-
-    /**
-     * Инициалы
-     */
-    public String getInitials() {
-        return firstName.charAt(0) + "." +
-                (middleName != null ? middleName.charAt(0) + "." : "") +
-                " " + lastName;
     }
 }

@@ -1,6 +1,7 @@
 package com.literature.russian_literature.genres.db;
 
 import com.literature.russian_literature.genres.domain.Genre;
+
 import org.springframework.stereotype.Component;
 
 @Component

@@ -2,11 +2,11 @@ package com.literature.russian_literature.catalog.api;
 
 import com.literature.russian_literature.books.db.BookEntity;
 import com.literature.russian_literature.books.domain.BookService;
-import com.literature.russian_literature.catalog.api.dto.BookForCatalogDto;
-import com.literature.russian_literature.catalog.api.dto.CatalogCategoryWithBooksDto;
-import com.literature.russian_literature.catalog.api.dto.CatalogPageDto;
+import com.literature.russian_literature.catalog.domain.dto.BookForCatalogDto;
+import com.literature.russian_literature.catalog.domain.dto.CatalogCategoryWithBooksDto;
+import com.literature.russian_literature.catalog.domain.dto.CatalogPageDto;
 import com.literature.russian_literature.catalog.db.BookForCatalogMapper;
-import com.literature.russian_literature.catalog.domain.CatalogCategory;
+import com.literature.russian_literature.catalog.domain.dto.CatalogCategory;
 import com.literature.russian_literature.catalog.domain.CatalogCategoryService;
 import com.literature.russian_literature.catalog.domain.BookSelectionService;
 
@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/catalog")
 public class CatalogPageController {
-    private static final Logger log = LoggerFactory.getLogger(CatalogPageController.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CatalogPageController.class);
 
     private final CatalogCategoryService categoryService;
     private final BookService bookService;
@@ -41,7 +41,7 @@ public class CatalogPageController {
 
     @GetMapping("/page")
     public ResponseEntity<CatalogPageDto> getCatalogPage() {
-        log.info("Called getCatalogPage");
+        LOG.info("Called getCatalogPage");
 
         List<CatalogCategory> activeCategories = categoryService.getActiveCategories();
 
@@ -62,13 +62,12 @@ public class CatalogPageController {
         CatalogPageDto response = new CatalogPageDto(
                 categoriesWithBooks,
                 categoriesWithBooks.size(),
-                false // или true, если есть пагинация
+                false
         );
 
         return ResponseEntity.ok(response);
     }
 
-    // слайдер
     @GetMapping("/category/{code}/books")
     public ResponseEntity<Page<BookForCatalogDto>> getCategoryBooks(
             @PathVariable String code,

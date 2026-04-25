@@ -5,17 +5,17 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
 import java.time.LocalDateTime;
 
 @Configuration
 public class CatalogCategorySeeder {
-    private static final Logger log = LoggerFactory.getLogger(CatalogCategorySeeder.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CatalogCategorySeeder.class);
 
     @Bean
     CommandLineRunner initCatalogCategories(CatalogCategoryRepository repository) {
         return args -> {
             if (repository.count() == 0) {
-                // Новинки
                 CatalogCategoryEntity newBooks = new CatalogCategoryEntity();
                 newBooks.setName("Новинки");
                 newBooks.setCode("new");
@@ -23,12 +23,11 @@ public class CatalogCategorySeeder {
                 newBooks.setIsActive(true);
                 newBooks.setBooksToShow(7);
                 newBooks.setCriteriaType("NEW");
-                newBooks.setDaysInterval(30); // Книги за последние 30 дней
+                newBooks.setDaysInterval(30);
                 newBooks.setCreatedAt(LocalDateTime.now());
                 newBooks.setUpdatedAt(LocalDateTime.now());
                 repository.save(newBooks);
 
-                // Популярное
                 CatalogCategoryEntity popular = new CatalogCategoryEntity();
                 popular.setName("Популярное");
                 popular.setCode("popular");
@@ -41,7 +40,6 @@ public class CatalogCategorySeeder {
                 popular.setUpdatedAt(LocalDateTime.now());
                 repository.save(popular);
 
-                // Русская литература 19 века
                 CatalogCategoryEntity russian19th = new CatalogCategoryEntity();
                 russian19th.setName("Русская литература XIX века");
                 russian19th.setCode("russian_19th_century");
@@ -55,7 +53,7 @@ public class CatalogCategorySeeder {
                 russian19th.setUpdatedAt(LocalDateTime.now());
                 repository.save(russian19th);
 
-                log.info("Добавлены начальные категории каталога");
+                LOG.info("Initial catalog categories have been added");
             }
         };
     }
