@@ -1,4 +1,5 @@
 backend/HELP.md
+frontend/src/pages/HomePage.vue
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
