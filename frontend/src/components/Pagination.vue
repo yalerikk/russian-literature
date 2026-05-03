@@ -4,9 +4,9 @@
       <svg v-if="currentPage === 0" width="16" height="16" viewBox="0 0 16 16" fill="none">
         <path d="M9.33333 4.66668L6 8.00001L9.33333 11.3333" stroke="#73706C" stroke-linecap="round" stroke-linejoin="round" />
       </svg>
-      <svg v-else width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <path d="M6.66667 11.3333L10 7.99999L6.66667 4.66666" stroke="#902923" stroke-linecap="round" stroke-linejoin="round" />
-        <path d="M6.66667 11.3333L10 7.99999L6.66667 4.66666" stroke="#902923" stroke-opacity="0.2" stroke-linecap="round" stroke-linejoin="round" />
+      <svg v-else width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9.33333 4.66683L6 8.00016L9.33333 11.3335" stroke="#902923" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M9.33333 4.66683L6 8.00016L9.33333 11.3335" stroke="#902923" stroke-opacity="0.2" stroke-linecap="round" stroke-linejoin="round" />
       </svg>
     </button>
 
@@ -28,9 +28,9 @@
       <svg v-if="currentPage === totalPages - 1" width="16" height="16" viewBox="0 0 16 16" fill="none">
         <path d="M6.66667 11.3333L10 7.99999L6.66667 4.66666" stroke="#73706C" stroke-linecap="round" stroke-linejoin="round" />
       </svg>
-      <svg v-else width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <path d="M9.33333 4.66668L6 8.00001L9.33333 11.3333" stroke="#902923" stroke-linecap="round" stroke-linejoin="round" />
-        <path d="M9.33333 4.66668L6 8.00001L9.33333 11.3333" stroke="#902923" stroke-opacity="0.2" stroke-linecap="round" stroke-linejoin="round" />
+      <svg v-else width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M6.66667 11.3332L10 7.99984L6.66667 4.6665" stroke="#902923" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M6.66667 11.3332L10 7.99984L6.66667 4.6665" stroke="#902923" stroke-opacity="0.2" stroke-linecap="round" stroke-linejoin="round" />
       </svg>
     </button>
   </div>
@@ -100,7 +100,7 @@ const visiblePages = computed(() => {
 .pagination {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   flex-direction: row;
   gap: 10px;
 }
@@ -129,11 +129,11 @@ const visiblePages = computed(() => {
 }
 
 .page-number {
-  color: var(--dim-grey, #73706C);
+  color: #902923;  
 }
 
 .page-number.active {
-  color: #902923;  
+  color: var(--dim-grey, #73706C);
   font-weight: 500;
 }
 

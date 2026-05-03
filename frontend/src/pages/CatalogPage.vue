@@ -28,9 +28,10 @@
           :key="category.id"
           :title="category.name"
           :code="category.code"
+          :category-name="category.name"
           :books-to-show="category.booksToShow"
           :show-more-button="true"
-          @book-click="(bookId) => goToBook(bookId, category.name)"
+          @book-click="(bookId, category) => goToBook(bookId, category)"
           @more-click="goToCategory(category)"
           class="category-slider"
         />
@@ -76,13 +77,13 @@ const loadCatalog = async () => {
 }
 
 // Переход на страницу книги
-const goToBook = (bookId, categoryName) => {
-  console.log('Клик по книге из категории:', categoryName)
+const goToBook = (bookId, category) => {
   router.push({
     path: `/books/${bookId}`,
     query: { 
       from: 'catalog',
-      category: categoryName 
+      categoryCode: category.code,
+      categoryName: category.name
     }
   })
 }

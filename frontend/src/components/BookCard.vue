@@ -1,5 +1,5 @@
 <template>
-  <div class="book-card" @click="goToBookPage">
+  <div class="book-card" @click="$emit('book-click', book.id)">
     <!-- Обложка книги -->
     <div class="book-cover">
       <img 
@@ -92,11 +92,6 @@ export default {
   methods: {
     handleImageError(e) {
       e.target.src = '/images/cover.png'
-    },
-
-    goToBookPage() {
-      const from = this.$route?.name || 'catalog'
-      this.$router?.push({ path: `/books/${this.book.id}`, query: { from } })
     },
     
     toggleFavorite(e) {

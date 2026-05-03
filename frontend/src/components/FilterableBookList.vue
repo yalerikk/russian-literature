@@ -32,26 +32,29 @@
 
 <script setup>
 import { ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import BooksFilter from './BooksFilter.vue'
 import BookCard from './BookCard.vue'
 import Pagination from './Pagination.vue'
 import { apiClient } from '../services/api'
 
 const props = defineProps({
+  fetchUrl: { 
+    type: String, 
+    default: '/books/filter' 
+  },
   fixedParams: {
     type: Object,
     default: () => ({})
   }
 })
 
-const router = useRouter()
-
 const books = ref([])
 const loading = ref(false)
 const error = ref(null)
 const currentPage = ref(0)
 const totalPages = ref(0)
+
+const emit = defineEmits(['book-click'])
 
 const activeFilters = ref({
   genreIds: [],
@@ -78,7 +81,7 @@ async function fetchBooks() {
 
     // Фильтры
     if (activeFilters.value.genreIds.length) {
-        params.append('genreIds', activeFilters.value.genreIds.join(','))
+      activeFilters.value.genreIds.forEach(id => params.append('genreIds', id))
     }
     if (activeFilters.value.grade) params.append('grade', activeFilters.value.grade)
     if (activeFilters.value.level) params.append('level', activeFilters.value.level)
@@ -120,7 +123,7 @@ function onPageChange(newPage) {
 }
 
 function goToBook(bookId) {
-  router.push({ path: `/books/${bookId}`, query: { from: 'catalog' } })
+  emit('book-click', bookId)
 }
 
 watch(() => props.fixedParams, () => {

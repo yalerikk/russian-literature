@@ -3,29 +3,36 @@
     <div class="category-content">
       <Breadcrumbs :items="breadcrumbs" />
       <h1 class="category-title">{{ categoryName }}</h1>
-      <FilterableBookList :fixed-params="{ categoryCode }" />
+      <FilterableBookList 
+        v-if="currentCategory"
+        :fixed-params="{ categoryCode }" 
+        @book-click="goToBook"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Breadcrumbs from '../components/Breadcrumbs.vue'
 import FilterableBookList from '../components/FilterableBookList.vue'
 import { apiClient } from '../services/api'
 
 const route = useRoute()
+const router = useRouter()
 const categoryCode = route.params.code
 const categoryName = ref('')
+const currentCategory = ref(null)
 
 onMounted(async () => {
   try {
     const data = await apiClient.get(`/api/catalog/categories/code/${categoryCode}`)
+    currentCategory.value = data
     categoryName.value = data.name
   } catch (err) {
     console.error(err)
-    categoryName.value = categoryName
+    categoryName.value = 'Категория'
   }
 })
 
@@ -33,6 +40,24 @@ const breadcrumbs = computed(() => [
   { label: 'Каталог', link: '/catalog' },
   { label: categoryName.value }
 ])
+
+const goToBook = (bookId) => {
+  console.log('Переход с категорией:', currentCategory.value)
+  if (!currentCategory.value) {
+    console.warn('Категория не загружена, повтор через 100ms')
+    setTimeout(() => goToBook(bookId), 100)
+    return
+  }
+  console.log('Переход с категорией:', currentCategory.value)
+  router.push({
+    path: `/books/${bookId}`,
+    query: {
+      from: 'catalog',
+      categoryCode: currentCategory.value.code,
+      categoryName: currentCategory.value.name
+    }
+  })
+}
 </script>
 
 <style scoped>

@@ -8,51 +8,34 @@
         @click="$emit('more-click')"
       >
         Еще
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <path d="M10 17L15 12L10 7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" />
-          <path d="M10 17L15 12L10 7" stroke="currentColor" stroke-opacity="0.2" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M10 17L15 12L10 7" stroke="currentColor" stroke-opacity="0.2" />
         </svg>
       </button>
     </div>
 
-    <div v-if="isLoading" class="loading-state">
-      Загрузка книг...
-    </div>
-    <div v-else-if="loadError" class="error-state">
-      {{ loadError }}
-      <button @click="fetchBooks(currentPage)">Повторить</button>
-    </div>
-    <div v-else-if="books.length === 0" class="empty-state">
-      Книг пока нет
-    </div>
+    <div v-if="isLoading" class="loading-state">Загрузка книг...</div>
+    <div v-else-if="loadError" class="error-state">{{ loadError }} <button @click="retry">Повторить</button></div>
+    <div v-else-if="displayedBooks.length === 0" class="empty-state">Книг пока нет</div>
     <div v-else class="slider-container">
       <div class="slider-wrapper" ref="sliderRef">
-        <button 
-          class="slider-nav prev"
-          @click="scrollPrev"
-          :disabled="!canScrollPrev"
-        >
+        <button class="slider-nav prev" @click="scrollPrev" :disabled="!canScrollPrev">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
-
-        <div class="slider-track">
+        <div class="slider-grid-container">
           <div class="slider-grid">
             <BookCard
-              v-for="book in books"
+              v-for="book in displayedBooks"
               :key="book.id"
               :book="book"
-              @click="$emit('book-click', book.id)"
+              @book-click="onBookClick(book.id)"
             />
           </div>
         </div>
-
-        <button 
-          class="slider-nav next"
-          @click="scrollNext"
-          :disabled="!canScrollNext"
-        >
+        <button class="slider-nav next" @click="scrollNext" :disabled="!canScrollNext">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -63,114 +46,70 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import BookCard from './BookCard.vue'
-import { catalogService } from '../services/catalog.js'
 
 const props = defineProps({
   title: String,
-  code: {
-    type: String,
-    required: true
-  },
-  booksToShow: {
-    type: Number,
-    default: 7
-  },
-  showMoreButton: Boolean
+  code: String,
+  booksToShow: { type: Number, default: 7 },
+  categoryName: String,
+  showMoreButton: Boolean,
+  books: { type: Array, default: null }
 })
-
 const emit = defineEmits(['book-click', 'more-click'])
 
-// Состояние
 const isLoading = ref(true)
 const loadError = ref(null)
-const books = ref([])
+const fetchedBooks = ref([])
 const currentPage = ref(0)
 const totalPages = ref(0)
-const sliderRef = ref(null)
-const offset = ref(0)
-const itemWidth = ref(140)
-const sliderWidth = ref(0)
-const trackWidth = ref(0)
 
-// Вычисляемые свойства
-const displayedBooks = computed(() => books.value)
+const displayedBooks = computed(() => {
+  if (props.books && props.books.length) return props.books
+  return fetchedBooks.value
+})
 
 const canScrollPrev = computed(() => currentPage.value > 0)
 const canScrollNext = computed(() => currentPage.value + 1 < totalPages.value)
 
-// Методы API
 async function fetchBooks(page = 0) {
   if (!props.code) return
   isLoading.value = true
   loadError.value = null
-
   try {
-    const response = await fetch(`/api/catalog/category/${props.code}/books?page=${page}&size=${props.booksToShow}`)
-    if (!response.ok) throw new Error('Ошибка загрузки данных')
-    const data = await response.json()
+    const res = await fetch(`/api/catalog/category/${props.code}/books?page=${page}&size=${props.booksToShow}`)
+    if (!res.ok) throw new Error()
+    const data = await res.json()
     let booksData = data.content
     if (props.code === 'new') {
       booksData = booksData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     }
-    books.value = booksData
+    fetchedBooks.value = booksData
     currentPage.value = data.number
     totalPages.value = data.totalPages
-    offset.value = 0
-  } catch (err) {
-    loadError.value = err.message || 'Не удалось загрузить книги'
+  } catch {
+    loadError.value = 'Не удалось загрузить книги'
   } finally {
     isLoading.value = false
   }
 }
 
-const scrollPrev = () => {
-  if (canScrollPrev.value) fetchBooks(currentPage.value - 1)
-}
-
-const scrollNext = () => {
-  if (canScrollNext.value) fetchBooks(currentPage.value + 1)
-}
-
-// Обновление размеров слайдера
-const updateSliderDimensions = () => {
-  if (!sliderRef.value) return
-  nextTick(() => {
-    const wrapper = sliderRef.value
-    const track = wrapper.querySelector('.slider-track')
-    if (!wrapper || !track) return
-    sliderWidth.value = wrapper.clientWidth
-    trackWidth.value = track.scrollWidth
-    if (trackWidth.value <= sliderWidth.value) offset.value = 0
+function onBookClick(bookId) {
+  emit('book-click', bookId, {
+    code: props.code,
+    name: props.categoryName || props.title // запасной вариант
   })
 }
 
-// Следим за изменением кода категории
-watch(() => props.code, () => {
-  fetchBooks(0)
-})
+const scrollPrev = () => { if (canScrollPrev.value) fetchBooks(currentPage.value - 1) }
+const scrollNext = () => { if (canScrollNext.value) fetchBooks(currentPage.value + 1) }
+const retry = () => fetchBooks(currentPage.value)
 
-// Ресайз
-let resizeTimeout
-const handleResize = () => {
-  clearTimeout(resizeTimeout)
-  resizeTimeout = setTimeout(updateSliderDimensions, 250)
-}
-
+watch(() => props.code, () => { if (props.code && !props.books) fetchBooks(0) })
 onMounted(() => {
-  if (props.code) fetchBooks(0)
-  window.addEventListener('resize', handleResize)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('resize', handleResize)
-  clearTimeout(resizeTimeout)
-})
-
-// Обновляем размеры после загрузки книг
-watch(books, () => {
-  setTimeout(updateSliderDimensions, 100)
+  if (props.books && props.books.length) isLoading.value = false
+  else if (props.code) fetchBooks(0)
 })
 </script>
 
@@ -238,7 +177,6 @@ watch(books, () => {
 }
 
 .slider-grid-container {
-  overflow-x: auto;
   scrollbar-width: thin;
   padding-bottom: 8px;
 }
