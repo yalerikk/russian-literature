@@ -18,13 +18,11 @@
           <div class="spinner"></div>
           <p>Загружаем авторов...</p>
         </div>
-
         <!-- Состояние ошибки -->
         <div v-else-if="error" class="error-state">
           <p>Ошибка: {{ error }}</p>
           <button @click="loadAuthors" class="btn-retry">Повторить</button>
         </div>
-
         <!-- Состояние "нет авторов" -->
         <div v-else-if="authors.length === 0" class="empty-state">
           <div class="empty-icon">👤</div>
@@ -33,15 +31,13 @@
         </div>
 
         <!-- Блок авторов -->
-        <div v-else class="authors-grid">
-          <div class="authors-block">
-            <AuthorCard 
-              v-for="author in authors" 
-              :key="author.id"
-              :author="author"
-              @click="viewAuthor(author.id)"
-            />
-          </div>
+        <div class="authors-grid">
+          <AuthorCard 
+            v-for="author in authors" 
+            :key="author.id"
+            :author="author"
+            @click="viewAuthor(author.id)"
+          />
         </div>
       </div>
     </div>
@@ -144,24 +140,22 @@ onMounted(async () => {
   flex-direction: column;
 }
 
+.authors-grid-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
 /* Сетка авторов */
 .authors-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 24px;
-  margin-top: 0;
+  gap: 20px 20px;
+  row-gap: 24px;
+  margin: 0 auto;
   border-radius: 16px;
-  padding: 20px 0px;
+  padding: 20px 30px;
   background: white;
-}
-
-.authors-block {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: row;
-  gap: 20px;
-  padding: 0 30px;
+  width: fit-content;
 }
 
 /* Состояния */

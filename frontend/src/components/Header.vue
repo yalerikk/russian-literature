@@ -125,7 +125,13 @@ export default {
     
     const currentRoute = computed(() => route.path)
     
-    const isActive = (path) => currentRoute.value.startsWith(path)
+    const isActive = (path) => {
+      if (path === '/catalog') {
+        return currentRoute.value.startsWith('/catalog') || 
+              (currentRoute.value.startsWith('/books') && route.query.from === 'catalog')
+      }
+      return currentRoute.value.startsWith(path)
+    }
     
     const goToHome = () => router.push('/')
     const goToCatalog = () => router.push('/catalog')

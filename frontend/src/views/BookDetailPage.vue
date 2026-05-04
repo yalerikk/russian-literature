@@ -6,14 +6,28 @@
         <template v-if="breadcrumbPath === 'catalog'">
           <router-link to="/catalog" class="breadcrumb-item">Каталог</router-link>
           <span class="separator">/</span>
-          <span class="breadcrumb-item" v-if="categoryName">{{ categoryName }}</span>
+          <router-link 
+            v-if="categoryName && categoryCode" 
+            class="breadcrumb-item" 
+            :to="{ name: 'Category', params: { code: categoryCode } }"
+          >
+            {{ categoryName }}
+          </router-link>
+          <span v-else-if="categoryName" class="breadcrumb-item">{{ categoryName }}</span>
           <span class="separator" v-if="categoryName">/</span>
           <span class="breadcrumb-item current">{{ book.title }}</span>
         </template>
         <template v-else-if="breadcrumbPath === 'author'">
           <router-link to="/authors" class="breadcrumb-item">Авторы</router-link>
           <span class="separator">/</span>
-          <span class="breadcrumb-item">{{ book.authorName }}</span>
+          <router-link 
+            v-if="book.authorId" 
+            class="breadcrumb-item" 
+            :to="`/authors/${book.authorId}`"
+          >
+            {{ book.authorName }}
+          </router-link>
+          <span v-else class="breadcrumb-item">{{ book.authorName }}</span>
           <span class="separator">/</span>
           <span class="breadcrumb-item current">{{ book.title }}</span>
         </template>
@@ -380,6 +394,7 @@ onMounted(async () => {
   line-height: 150%;
   color: var(--burnt-umber, #902923);
   letter-spacing: 0.5px;
+  text-decoration: none;
 }
 
 .breadcrumb-item.current {
