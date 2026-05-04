@@ -34,6 +34,12 @@ const routes = [
     component: () => import("../pages/CategoryPage.vue"),
     props: true,
   },
+  {
+    path: "/search",
+    name: "Search",
+    component: () => import("../pages/SearchPage.vue"),
+    props: (route) => ({ query: route.query.q }),
+  },
   // Добавьте другие маршруты позже
 ];
 

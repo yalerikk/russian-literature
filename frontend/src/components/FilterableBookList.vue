@@ -70,14 +70,14 @@ async function fetchBooks() {
   try {
     const params = new URLSearchParams()
 
+    const fixed = { ...props.fixedParams }
+    console.log(fixed)
     // Фиксированные параметры
-    if (props.fixedParams.categoryCode) {
-      params.append('categoryCode', props.fixedParams.categoryCode)
-      console.log('FilterableBookList: categoryCode =', props.fixedParams.categoryCode)
-    }
-    if (props.fixedParams.authorId) {
-      params.append('authorId', props.fixedParams.authorId)
-    }
+    Object.entries(props.fixedParams).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        params.append(key, value)
+      }
+    })
 
     // Фильтры
     if (activeFilters.value.genreIds.length) {
@@ -91,7 +91,8 @@ async function fetchBooks() {
     params.append('page', currentPage.value)
     params.append('size', 20)
 
-    const url = `/books/filter?${params.toString()}`
+    const baseUrl = (props.fetchUrl || '/books/filter').split('?')[0]
+    const url = `${baseUrl}?${params.toString()}`
     console.log('FilterableBookList: запрос к бэкенду', url)
     const response = await apiClient.get(url)
     console.log('FilterableBookList: ответ бэкенда', response)
@@ -125,6 +126,17 @@ function onPageChange(newPage) {
 function goToBook(bookId) {
   emit('book-click', bookId)
 }
+watch(
+  () => props.fixedParams?.searchQuery,
+  (newQuery, oldQuery) => {
+    if (newQuery !== oldQuery && newQuery !== undefined) {
+      console.log('FilterableBookList: searchQuery изменился на', newQuery)
+      // Сбрасываем страницу и перезагружаем
+      currentPage.value = 0
+      fetchBooks()
+    }
+  }
+)
 
 watch(() => props.fixedParams, () => {
   console.log('FilterableBookList: fixedParams изменились, сброс фильтров')
