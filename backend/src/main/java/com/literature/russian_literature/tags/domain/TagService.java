@@ -1,6 +1,7 @@
 package com.literature.russian_literature.tags.domain;
 
 import com.literature.russian_literature.books.db.BookRepository;
+import com.literature.russian_literature.genres.domain.Genre;
 import com.literature.russian_literature.tags.db.TagEntity;
 import com.literature.russian_literature.tags.db.TagMapper;
 import com.literature.russian_literature.tags.db.TagRepository;
@@ -44,6 +45,12 @@ public class TagService {
 
     public Page<TagEntity> getAllTagsForAdmin(Pageable pageable) {
         return repository.findAll(pageable);
+    }
+
+    public List<Tag> getAllTags() {
+        return repository.findAll().stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 
     public List<Tag> getTagsByType(TagType type) {

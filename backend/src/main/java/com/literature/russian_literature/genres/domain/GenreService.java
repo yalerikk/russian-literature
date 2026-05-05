@@ -15,6 +15,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class GenreService {
     private static final Logger LOG = LoggerFactory.getLogger(GenreService.class);
@@ -38,6 +40,12 @@ public class GenreService {
         GenreEntity genreEntity = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Genre with id = " + id + " not found"));
         return mapper.toDomain(genreEntity);
+    }
+
+    public List<Genre> getAllGenres() {
+        return repository.findAll().stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 
     public Page<GenreEntity> getAllGenresForAdmin(Pageable pageable) {

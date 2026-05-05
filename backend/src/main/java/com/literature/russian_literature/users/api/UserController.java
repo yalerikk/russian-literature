@@ -1,5 +1,6 @@
 package com.literature.russian_literature.users.api;
 
+import com.literature.russian_literature.security.JwtUtil;
 import com.literature.russian_literature.users.db.UserEntity;
 import com.literature.russian_literature.users.domain.dto.User;
 import com.literature.russian_literature.users.domain.dto.LoginRequest;
@@ -9,12 +10,17 @@ import com.literature.russian_literature.users.domain.dto.UserResponse;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/users")
@@ -22,9 +28,12 @@ public class UserController {
     private static final Logger LOG = LoggerFactory.getLogger(UserController.class);
 
     private final UserService userService;
+    private final JwtUtil jwtUtil;
 
-    public UserController(UserService userService) {
+    @Autowired
+    public UserController(UserService userService, JwtUtil jwtUtil) {
         this.userService = userService;
+        this.jwtUtil = jwtUtil;
     }
 
     @GetMapping("/admin/list")
@@ -60,12 +69,19 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<UserResponse> loginUser(
+    public ResponseEntity<Map<String, String>> loginUser(
             @RequestBody LoginRequest loginRequest
     ) {
-        User user = userService.loginUser(loginRequest);
+        User user = userService.loginUser(loginRequest); // проверяет пароль и возвращает User
+        UserDetails userDetails = org.springframework.security.core.userdetails.User
+                .withUsername(user.username())
+                .password("") // пароль не нужен для генерации токена, уже проверен
+                .authorities("ROLE_" + user.role())
+                .build();
+        String token = jwtUtil.generateToken(userDetails);
+        Map<String, String> response = new HashMap<>();
+        response.put("token", token);
         LOG.info("Logged in user: {}", user.username());
-        UserResponse response = new UserResponse(user.id(), user.username(), user.email(), user.role());
         return ResponseEntity.ok(response);
     }
 

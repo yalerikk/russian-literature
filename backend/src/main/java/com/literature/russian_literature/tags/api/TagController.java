@@ -1,5 +1,6 @@
 package com.literature.russian_literature.tags.api;
 
+import com.literature.russian_literature.genres.domain.Genre;
 import com.literature.russian_literature.tags.db.TagEntity;
 import com.literature.russian_literature.tags.db.TagMapper;
 import com.literature.russian_literature.tags.domain.Tag;
@@ -41,6 +42,12 @@ public class TagController {
         Page<Tag> dtoPage = tagPage.map(mapper::toDomain);
         LOG.info("Admin list: page={}, size={}, total={}", page, size, dtoPage.getTotalElements());
         return ResponseEntity.ok(dtoPage);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Tag>> getAllTags() {
+        LOG.info("Called getAllTags");
+        return ResponseEntity.ok(tagService.getAllTags());
     }
 
     @GetMapping("/by-type")

@@ -28,6 +28,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -163,17 +164,23 @@ public class BookService {
         LOG.info("Deleted book: '{}' with id = {}", book.getTitle(), id);
     }
 
-    public Page<BookEntity> filterBooks(List<Long> genreIds, String grade, String level,
+    public Page<BookEntity> filterBooks(String genreIds, String grade, String level,
                                         String literature, String readingType, String categoryCode, String searchQuery, Long authorId,
                                         Pageable pageable
     ) {
         Specification<BookEntity> spec = (root, query, cb) -> cb.conjunction();
 
-        if (genreIds != null && !genreIds.isEmpty()) {
-            spec = spec.and((root, q, cb) -> {
-                var genresJoin = root.join("genres");
-                return genresJoin.get("id").in(genreIds);
-            });
+        // 1. Жанры
+        List<Long> genreIdList = null;
+        if (genreIds != null && !genreIds.isBlank()) {
+            genreIdList = Arrays.stream(genreIds.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .map(Long::parseLong)
+                    .toList();
+        }
+        if (genreIdList != null && !genreIdList.isEmpty()) {
+            spec = spec.and(BookSpecifications.byGenres(genreIdList));
         }
 
         spec = spec.and(BookSpecifications.byTagTypeAndName(TagType.GRADE, grade))

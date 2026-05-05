@@ -15,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/genres")
 public class GenreController {
@@ -38,6 +40,12 @@ public class GenreController {
         Page<Genre> dtoPage = genrePage.map(mapper::toDomain);
         LOG.info("Admin list: page={}, size={}, total={}", page, size, dtoPage.getTotalElements());
         return ResponseEntity.ok(dtoPage);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Genre>> getAllGenres() {
+        LOG.info("Called getAllGenres");
+        return ResponseEntity.ok(genreService.getAllGenres());
     }
 
     @GetMapping("/{id}")

@@ -51,7 +51,7 @@ public class BookController {
 
     @GetMapping("/filter")
     public ResponseEntity<Page<BookForCatalogDto>> filterBooks(
-            @RequestParam(required = false) List<Long> genreIds,
+            @RequestParam(required = false) String genreIds,
             @RequestParam(required = false) String grade,
             @RequestParam(required = false) String level,
             @RequestParam(required = false) String literature,
