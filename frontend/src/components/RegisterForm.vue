@@ -84,10 +84,10 @@ async function handleSubmit() {
     await authService.register(username.value, email.value, password.value)
     emit('success')
   } catch (err) {
-    const msg = err.response?.data?.message || 'Ошибка регистрации'
-    if (msg.toLowerCase().includes('username')) usernameError.value = msg
-    else if (msg.toLowerCase().includes('email')) emailError.value = msg
-    else passwordError.value = msg
+    const msg = err.message || 'Ошибка';
+    if (msg.toLowerCase().includes('username')) usernameError.value = msg;
+    else if (msg.toLowerCase().includes('email')) emailError.value = msg;
+    else passwordError.value = msg;
   } finally {
     loading.value = false
   }

@@ -21,13 +21,11 @@
           <router-link to="/authors" class="breadcrumb-item">Авторы</router-link>
           <span class="separator">/</span>
           <router-link 
-            v-if="book.authorId" 
-            class="breadcrumb-item" 
-            :to="`/authors/${book.authorId}`"
+            :to="`/authors/${route.query.authorId || book.authorId}`" 
+            class="breadcrumb-item"
           >
-            {{ book.authorName }}
+            {{ route.query.authorName || book.authorName || 'Автор' }}
           </router-link>
-          <span v-else class="breadcrumb-item">{{ book.authorName }}</span>
           <span class="separator">/</span>
           <span class="breadcrumb-item current">{{ book.title }}</span>
         </template>

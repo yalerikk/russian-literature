@@ -255,10 +255,10 @@ async function saveProfile() {
     alert('Данные успешно обновлены')
     router.go(0)
   } catch (err) {
-    const msg = err.response?.data?.message || 'Ошибка сохранения'
-    if (msg.toLowerCase().includes('username')) errors.value.username = msg
-    else if (msg.toLowerCase().includes('email')) errors.value.email = msg
-    else alert(msg)
+    const msg = err.data?.message || err.message || 'Ошибка сохранения';
+    if (msg.toLowerCase().includes('username')) errors.value.username = msg;
+    else if (msg.toLowerCase().includes('email')) errors.value.email = msg;
+    else alert(msg);
   } finally {
     saving.value = false
   }

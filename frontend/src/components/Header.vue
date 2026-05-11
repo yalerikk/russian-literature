@@ -102,7 +102,7 @@
           </button>
           
           <!-- Войти/Профиль -->
-          <ProfileDropdownMenu v-if="isAuthenticated" :class="{ active: isActive('/profile/edit') }" />
+          <ProfileDropdownMenu v-if="isAuthenticated" :class="{ active: isActive('/profile') }" />
           <button v-else class="auth-btn" @click="openAuthModal">
             <span class="auth-text">Войти</span>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -141,20 +141,32 @@ export default {
     const currentRoute = computed(() => route.path)
     
     const isActive = (path) => {
+      // Каталог
       if (path === '/catalog') {
         return currentRoute.value.startsWith('/catalog') || 
               (currentRoute.value.startsWith('/books') && route.query.from === 'catalog')
       }
-      if (path === '/profile/edit') {
-        return currentRoute.value === '/profile/edit'
+      // Авторы
+      if (path === '/authors') {
+        return currentRoute.value === '/authors' || currentRoute.value.startsWith('/authors/')
       }
+      // Мои книги
       if (path === '/profile/my-books') {
         return currentRoute.value === '/profile/my-books' || currentRoute.value.startsWith('/profile/my-books/')
       }
+      // Избранное
       if (path === '/profile/favorites') {
         return currentRoute.value === '/profile/favorites'
       }
-      return currentRoute.value.startsWith(path)
+      // Редактирование профиля
+      if (path === '/profile/edit') {
+        return currentRoute.value === '/profile/edit'
+      }
+      // Кнопка «Профиль» (выпадающее меню) – только на /profile/edit и /admin/*
+      if (path === '/profile') {
+        return currentRoute.value === '/profile/edit' || currentRoute.value.startsWith('/admin')
+      }
+      return false
     }
     
     const goToHome = () => router.push('/')

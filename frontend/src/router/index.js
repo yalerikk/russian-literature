@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import CatalogPage from "../pages/CatalogPage.vue";
 import AuthorsPage from "../pages/AuthorsPage.vue";
+import AdminAuthorsPage from "../pages/admin/AdminAuthorsPage.vue";
 import { authService } from "../services/authService";
 
 const routes = [
@@ -72,6 +73,12 @@ const routes = [
     component: () => import("../pages/ProfileEdit.vue"),
     meta: { requiresAuth: true },
   },
+  {
+    path: "/admin/authors",
+    name: "AdminAuthors",
+    component: AdminAuthorsPage,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
   // Добавьте другие маршруты позже
 ];
 
@@ -83,6 +90,13 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !authService.isAuthenticated.value) {
     next("/");
+  } else if (to.meta.requiresAdmin) {
+    const user = authService.getUserFromToken();
+    if (user?.role !== "ROLE_ADMIN") {
+      next("/");
+    } else {
+      next();
+    }
   } else {
     next();
   }

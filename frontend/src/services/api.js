@@ -1,6 +1,5 @@
-import { authService } from "./authService"; 
+import { authService } from "./authService";
 
-// HTTP клиент для работы с API
 class ApiClient {
   constructor(baseURL) {
     this.baseURL = baseURL;
@@ -12,7 +11,7 @@ class ApiClient {
 
     const headers = {
       "Content-Type": "application/json",
-      "Accept": "application/json; charset=utf-8",
+      Accept: "application/json; charset=utf-8",
       "Accept-Charset": "utf-8",
       ...(token && { Authorization: `Bearer ${token}` }),
       ...options.headers,
@@ -26,35 +25,46 @@ class ApiClient {
       const response = await fetch(url, { ...options, headers });
       console.log(`[API] Ответ ${url}`, response.status, response.statusText);
 
-      if (response.status === 401) {
-        console.warn("[API] 401 Unauthorized – выполняю logout");
-        authService.logout();
-        window.location.reload();
-        throw new Error("Сессия истекла");
+      // Пытаемся прочитать тело ответа (для любых статусов)
+      let data = null;
+      let rawText = null;
+      const contentType = response.headers.get("content-type");
+      const isJson = contentType && contentType.includes("application/json");
+
+      if (isJson) {
+        try {
+          data = await response.json();
+          console.log(`[API] Тело ответа (JSON):`, data);
+        } catch (jsonError) {
+          console.warn("Ошибка парсинга JSON", jsonError);
+        }
+      } else {
+        rawText = await response.text();
+        console.log(`[API] Тело ответа (текст):`, rawText);
       }
 
+      // Если ответ неуспешен — формируем ошибку с человеческим сообщением
       if (!response.ok) {
-        const error = await response.json().catch(() => ({
-          message: `HTTP ${response.status}: ${response.statusText}`,
-        }));
-        throw new Error(error.message || "Ошибка сети");
+        let errorMessage;
+        if (data && data.message) {
+          errorMessage = data.message; // берём именно message (детали)
+        } else if (data && data.error) {
+          errorMessage = data.error;
+        } else if (rawText) {
+          errorMessage = rawText;
+        } else {
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+        console.error("[API] Ошибка с бэкенда:", errorMessage);
+
+        const error = new Error(errorMessage);
+        error.response = response;
+        error.data = data;
+        throw error;
       }
 
-      // Для DELETE запросов может не быть тела
-      if (response.status === 204) {
-        return null;
-      }
-
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        const data = await response.json();
-        console.log(
-          `[API] Тело ответа (первые 200 символов):`,
-          JSON.stringify(data).slice(0, 200)
-        );
-        return data;
-      }
-      return null;
+      if (response.status === 204) return null;
+      return data;
     } catch (error) {
       console.error("API Request failed:", error);
       throw error;
@@ -87,7 +97,27 @@ class ApiClient {
   delete(endpoint) {
     return this.request(endpoint, { method: "DELETE" });
   }
+
+  async uploadFile(endpoint, file) {
+    const formData = new FormData();
+    formData.append("file", file);
+    const token = localStorage.getItem("jwt_token");
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        Authorization: token ? `Bearer ${token}` : undefined,
+      },
+      body: formData,
+    });
+    if (!response.ok) {
+      const error = await response
+        .json()
+        .catch(() => ({ message: "Upload failed" }));
+      throw new Error(error.message || "Upload failed");
+    }
+    return response.json();
+  }
 }
 
 // Создаем экземпляр клиента
-export const apiClient = new ApiClient('');
+export const apiClient = new ApiClient("");

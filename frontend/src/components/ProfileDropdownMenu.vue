@@ -12,6 +12,13 @@
       <router-link to="/profile/my-books" class="dropdown-item">Мои книги</router-link>
       <router-link to="/profile/favorites" class="dropdown-item">Избранное</router-link>
       <router-link to="/profile/edit" class="dropdown-item">Управление аккаунтом</router-link>
+
+      <!-- Админские пункты -->
+      <template v-if="isAdmin">
+        <router-link to="/admin/authors" class="dropdown-item">Авторы</router-link>
+        <!-- позже добавятся: Книги, Пользователи, Жанры, Теги, Категории -->
+      </template>
+
       <hr class="dropdown-divider" />
       <button @click="logout" class="dropdown-item logout">Выйти</button>
     </div>
@@ -19,7 +26,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useFavorites } from '../stores/favorites';
 import { authService } from '../services/authService';
 import { useRouter } from 'vue-router';
@@ -29,11 +36,15 @@ const favoritesStore = useFavorites();
 const router = useRouter();
 const isAuthenticated = authService.isAuthenticated
 
+const isAdmin = computed(() => {
+  const user = authService.getUserFromToken();
+  return user?.role === 'ROLE_ADMIN';
+});
+
 const toggleDropdown = () => {
-  console.log('toggleDropdown called, isOpen before:', isOpen.value)
   isOpen.value = !isOpen.value
-  console.log('isOpen after:', isOpen.value)
 }
+
 const logout = () => {
   authService.logout()
   favoritesStore.clearFavorites();

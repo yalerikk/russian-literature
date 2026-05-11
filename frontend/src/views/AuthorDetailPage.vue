@@ -119,7 +119,15 @@ const handleImageError = (e) => {
 }
 
 const goToBook = (bookId) => {
-  router.push({ path: `/books/${bookId}`, query: { from: 'author' } })
+  router.push({
+    path: `/books/${bookId}`,
+    query: {
+      from: 'author',
+      authorId: authorId, 
+      authorName: authorName.value 
+    }
+  })
+  console.log(bookId, authorId, authorName.value)
 }
 
 onMounted(() => {
