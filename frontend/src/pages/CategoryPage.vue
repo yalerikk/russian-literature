@@ -42,7 +42,7 @@ const breadcrumbs = computed(() => [
 ])
 
 const goToBook = (bookId) => {
-  console.log('Переход с категорией:', currentCategory.value)
+  console.log('[CategoryPage] goToBook вызван с bookId =', bookId)
   if (!currentCategory.value) {
     console.warn('Категория не загружена, повтор через 100ms')
     setTimeout(() => goToBook(bookId), 100)

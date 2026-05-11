@@ -78,6 +78,7 @@ const loadCatalog = async () => {
 
 // Переход на страницу книги
 const goToBook = (bookId, category) => {
+  console.log('[CatalogPage] goToBook вызван с bookId =', bookId)
   router.push({
     path: `/books/${bookId}`,
     query: { 

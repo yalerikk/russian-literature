@@ -15,7 +15,7 @@
               v-for="book in books"
               :key="book.id"
               :book="book"
-              @click="goToBook(book.id)"
+              @book-click="goToBook"
             />
           </div>
           <Pagination
@@ -38,23 +38,17 @@ import Pagination from './Pagination.vue'
 import { apiClient } from '../services/api'
 
 const props = defineProps({
-  fetchUrl: { 
-    type: String, 
-    default: '/books/filter' 
-  },
-  fixedParams: {
-    type: Object,
-    default: () => ({})
-  }
+  fetchUrl: { type: String, default: '/books/filter' },
+  fixedParams: { type: Object, default: () => ({}) }
 })
+
+const emit = defineEmits(['book-click'])
 
 const books = ref([])
 const loading = ref(false)
 const error = ref(null)
 const currentPage = ref(0)
 const totalPages = ref(0)
-
-const emit = defineEmits(['book-click'])
 
 const activeFilters = ref({
   genreIds: [],
@@ -69,17 +63,11 @@ async function fetchBooks() {
   error.value = null
   try {
     const params = new URLSearchParams()
-
-    const fixed = { ...props.fixedParams }
-    console.log(fixed)
-    // Фиксированные параметры
+    // fixedParams
     Object.entries(props.fixedParams).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        params.append(key, value)
-      }
+      if (value !== undefined && value !== null && value !== '') params.append(key, value)
     })
-
-    // Фильтры
+    // фильтры
     if (activeFilters.value.genreIds.length) {
       activeFilters.value.genreIds.forEach(id => params.append('genreIds', id))
     }
@@ -87,23 +75,18 @@ async function fetchBooks() {
     if (activeFilters.value.level) params.append('level', activeFilters.value.level)
     if (activeFilters.value.literature) params.append('literature', activeFilters.value.literature)
     if (activeFilters.value.readingType) params.append('readingType', activeFilters.value.readingType)
-
     params.append('page', currentPage.value)
     params.append('size', 20)
 
     const baseUrl = (props.fetchUrl || '/books/filter').split('?')[0]
     const url = `${baseUrl}?${params.toString()}`
-    console.log('FilterableBookList: запрос к бэкенду', url)
+    console.log('FilterableBookList: запрос', url)
     const response = await apiClient.get(url)
-    console.log('FilterableBookList: ответ бэкенда', response)
     let booksData = response.content
-    if (props.fixedParams.categoryCode === 'new') {
-        booksData = booksData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    }
     books.value = booksData
     totalPages.value = response.totalPages
   } catch (err) {
-    console.error('FilterableBookList: ошибка', err)
+    console.error(err)
     error.value = 'Не удалось загрузить книги'
   } finally {
     loading.value = false
@@ -111,14 +94,12 @@ async function fetchBooks() {
 }
 
 function applyFilters(newFilters) {
-  console.log('FilterableBookList: применены новые фильтры', newFilters)
   activeFilters.value = newFilters
   currentPage.value = 0
   fetchBooks()
 }
 
 function onPageChange(newPage) {
-  console.log('FilterableBookList: смена страницы на', newPage)
   currentPage.value = newPage
   fetchBooks()
 }
@@ -126,20 +107,15 @@ function onPageChange(newPage) {
 function goToBook(bookId) {
   emit('book-click', bookId)
 }
-watch(
-  () => props.fixedParams?.searchQuery,
-  (newQuery, oldQuery) => {
-    if (newQuery !== oldQuery && newQuery !== undefined) {
-      console.log('FilterableBookList: searchQuery изменился на', newQuery)
-      // Сбрасываем страницу и перезагружаем
-      currentPage.value = 0
-      fetchBooks()
-    }
+
+watch(() => props.fixedParams?.searchQuery, (newQuery, oldQuery) => {
+  if (newQuery !== oldQuery && newQuery !== undefined) {
+    currentPage.value = 0
+    fetchBooks()
   }
-)
+})
 
 watch(() => props.fixedParams, () => {
-  console.log('FilterableBookList: fixedParams изменились, сброс фильтров')
   activeFilters.value = {
     genreIds: [],
     grade: null,

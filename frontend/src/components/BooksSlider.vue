@@ -17,7 +17,7 @@
 
     <div v-if="isLoading" class="loading-state">Загрузка книг...</div>
     <div v-else-if="loadError" class="error-state">{{ loadError }} <button @click="retry">Повторить</button></div>
-    <div v-else-if="displayedBooks.length === 0" class="empty-state">Книг пока нет</div>
+    <div v-else-if="booksToDisplay.length === 0" class="empty-state">Книг пока нет</div>
     <div v-else class="slider-container">
       <div class="slider-wrapper" ref="sliderRef">
         <button class="slider-nav prev" @click="scrollPrev" :disabled="!canScrollPrev">
@@ -28,10 +28,10 @@
         <div class="slider-grid-container">
           <div class="slider-grid">
             <BookCard
-              v-for="book in displayedBooks"
+              v-for="book in booksToDisplay"
               :key="book.id"
               :book="book"
-              @book-click="onBookClick(book.id)"
+              @book-click="onBookClick"
             />
           </div>
         </div>
@@ -48,6 +48,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import BookCard from './BookCard.vue'
+import { apiClient } from '../services/api'
 
 const props = defineProps({
   title: String,
@@ -65,7 +66,7 @@ const fetchedBooks = ref([])
 const currentPage = ref(0)
 const totalPages = ref(0)
 
-const displayedBooks = computed(() => {
+const booksToDisplay = computed(() => {
   if (props.books && props.books.length) return props.books
   return fetchedBooks.value
 })
@@ -78,16 +79,11 @@ async function fetchBooks(page = 0) {
   isLoading.value = true
   loadError.value = null
   try {
-    const res = await fetch(`/api/catalog/category/${props.code}/books?page=${page}&size=${props.booksToShow}`)
-    if (!res.ok) throw new Error()
-    const data = await res.json()
-    let booksData = data.content
-    if (props.code === 'new') {
-      booksData = booksData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    }
+    const res = await apiClient.get(`/api/catalog/category/${props.code}/books?page=${page}&size=${props.booksToShow}`)
+    let booksData = res.content
     fetchedBooks.value = booksData
-    currentPage.value = data.number
-    totalPages.value = data.totalPages
+    currentPage.value = res.number
+    totalPages.value = res.totalPages
   } catch {
     loadError.value = 'Не удалось загрузить книги'
   } finally {
@@ -95,11 +91,8 @@ async function fetchBooks(page = 0) {
   }
 }
 
-function onBookClick(bookId) {
-  emit('book-click', bookId, {
-    code: props.code,
-    name: props.categoryName || props.title // запасной вариант
-  })
+const onBookClick = (bookId) => {
+  emit('book-click', bookId, { code: props.code, name: props.categoryName || props.title })
 }
 
 const scrollPrev = () => { if (canScrollPrev.value) fetchBooks(currentPage.value - 1) }
@@ -107,6 +100,14 @@ const scrollNext = () => { if (canScrollNext.value) fetchBooks(currentPage.value
 const retry = () => fetchBooks(currentPage.value)
 
 watch(() => props.code, () => { if (props.code && !props.books) fetchBooks(0) })
+watch(() => props.books, (newBooks) => {
+  if (newBooks?.length) {
+    isLoading.value = false
+    loadError.value = null
+  } else if (newBooks !== null && newBooks?.length === 0) {
+    isLoading.value = false
+  }
+}, { immediate: true })
 onMounted(() => {
   if (props.books && props.books.length) isLoading.value = false
   else if (props.code) fetchBooks(0)

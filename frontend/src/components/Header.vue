@@ -72,10 +72,10 @@
           </button>
           
           <!-- Мои книги -->
-          <button 
+          <button
             class="icon-btn"
-            :class="{ active: isActive('/my-books') }"
-            @click="goToMyBooks"
+            :class="{ active: isActive('/profile/my-books') }"
+            @click="handleProtectedClick('myBooks')"
           >
             <div class="icon-wrapper">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -90,8 +90,8 @@
           <!-- Избранное -->
           <button 
             class="icon-btn"
-            :class="{ active: isActive('/favorites') }"
-            @click="goToFavorites"
+            :class="{ active: isActive('/profile/favorites') }"
+            @click="handleProtectedClick('favorites')"
           >
             <div class="icon-wrapper">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -102,37 +102,41 @@
           </button>
           
           <!-- Войти/Профиль -->
-          <button 
-            class="auth-btn"
-            @click="handleAuthClick"
-          >
-            <span class="auth-text">{{ isAuthenticated ? 'Профиль' : 'Войти' }}</span>
-            <div class="auth-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M8.99995 20.4001C8.84082 20.4001 8.68821 20.3369 8.57569 20.2244C8.46316 20.1118 8.39995 19.9592 8.39995 19.8001C8.39995 19.641 8.46316 19.4884 8.57569 19.3758C8.68821 19.2633 8.84082 19.2001 8.99995 19.2001H16.8C17.4365 19.2001 18.0469 18.9472 18.497 18.4972C18.9471 18.0471 19.1999 17.4366 19.1999 16.8001V7.2001C19.1999 6.56358 18.9471 5.95313 18.497 5.50304C18.0469 5.05295 17.4365 4.8001 16.8 4.8001H8.99995C8.84082 4.8001 8.68821 4.73688 8.57569 4.62436C8.46316 4.51184 8.39995 4.35923 8.39995 4.2001C8.39995 4.04097 8.46316 3.88836 8.57569 3.77583C8.68821 3.66331 8.84082 3.6001 8.99995 3.6001H16.8C17.7547 3.6001 18.6704 3.97938 19.3455 4.65451C20.0207 5.32964 20.4 6.24532 20.4 7.2001V16.8001C20.4 17.7549 20.0207 18.6706 19.3455 19.3457C18.6704 20.0208 17.7547 20.4001 16.8 20.4001H8.99995ZM9.17515 7.3753C9.23089 7.31942 9.2971 7.27509 9.36999 7.24484C9.44288 7.21459 9.52103 7.19903 9.59995 7.19903C9.67887 7.19903 9.75702 7.21459 9.82991 7.24484C9.9028 7.27509 9.96902 7.31942 10.0248 7.3753L14.2248 11.5753C14.2806 11.631 14.325 11.6972 14.3552 11.7701C14.3855 11.843 14.401 11.9212 14.401 12.0001C14.401 12.079 14.3855 12.1572 14.3552 12.2301C14.325 12.303 14.2806 12.3692 14.2248 12.4249L10.0248 16.6249C9.91209 16.7376 9.75928 16.8009 9.59995 16.8009C9.44062 16.8009 9.28781 16.7376 9.17515 16.6249C9.06249 16.5122 8.99919 16.3594 8.99919 16.2001C8.99919 16.0408 9.06249 15.888 9.17515 15.7753L12.3516 12.6001H1.79995C1.64082 12.6001 1.48821 12.5369 1.37569 12.4244C1.26317 12.3118 1.19995 12.1592 1.19995 12.0001C1.19995 11.841 1.26317 11.6884 1.37569 11.5758C1.48821 11.4633 1.64082 11.4001 1.79995 11.4001H12.3516L9.17515 8.2249C9.08524 8.13513 9.03384 8.01384 9.03206 7.88691C9.03028 7.75997 9.07826 7.63734 9.1656 7.54521C9.25294 7.45308 9.37252 7.3982 9.49946 7.39476C9.62639 7.39132 9.74849 7.43959 9.84025 7.5266L9.17515 7.3753Z" fill="currentColor" />
-              </svg>
-            </div>
+          <ProfileDropdownMenu v-if="isAuthenticated" :class="{ active: isActive('/profile/edit') }" />
+          <button v-else class="auth-btn" @click="openAuthModal">
+            <span class="auth-text">Войти</span>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8.99995 20.4001C8.84082 20.4001 8.68821 20.3369 8.57569 20.2244C8.46316 20.1118 8.39995 19.9592 8.39995 19.8001C8.39995 19.641 8.46316 19.4884 8.57569 19.3758C8.68821 19.2633 8.84082 19.2001 8.99995 19.2001H16.8C17.4365 19.2001 18.0469 18.9472 18.497 18.4972C18.9471 18.0471 19.1999 17.4366 19.1999 16.8001V7.2001C19.1999 6.56358 18.9471 5.95313 18.497 5.50304C18.0469 5.05295 17.4365 4.8001 16.8 4.8001H8.99995C8.84082 4.8001 8.68821 4.73688 8.57569 4.62436C8.46316 4.51184 8.39995 4.35923 8.39995 4.2001C8.39995 4.04097 8.46316 3.88836 8.57569 3.77583C8.68821 3.66331 8.84082 3.6001 8.99995 3.6001H16.8C17.7547 3.6001 18.6704 3.97938 19.3455 4.65451C20.0207 5.32964 20.4 6.24532 20.4 7.2001V16.8001C20.4 17.7549 20.0207 18.6706 19.3455 19.3457C18.6704 20.0208 17.7547 20.4001 16.8 20.4001H8.99995ZM9.17515 7.3753C9.23089 7.31942 9.2971 7.27509 9.36999 7.24484C9.44288 7.21459 9.52103 7.19903 9.59995 7.19903C9.67887 7.19903 9.75702 7.21459 9.82991 7.24484C9.9028 7.27509 9.96902 7.31942 10.0248 7.3753L14.2248 11.5753C14.2806 11.631 14.325 11.6972 14.3552 11.7701C14.3855 11.843 14.401 11.9212 14.401 12.0001C14.401 12.079 14.3855 12.1572 14.3552 12.2301C14.325 12.303 14.2806 12.3692 14.2248 12.4249L10.0248 16.6249C9.91209 16.7376 9.75928 16.8009 9.59995 16.8009C9.44062 16.8009 9.28781 16.7376 9.17515 16.6249C9.06249 16.5122 8.99919 16.3594 8.99919 16.2001C8.99919 16.0408 9.06249 15.888 9.17515 15.7753L12.3516 12.6001H1.79995C1.64082 12.6001 1.48821 12.5369 1.37569 12.4244C1.26317 12.3118 1.19995 12.1592 1.19995 12.0001C1.19995 11.841 1.26317 11.6884 1.37569 11.5758C1.48821 11.4633 1.64082 11.4001 1.79995 11.4001H12.3516L9.17515 8.2249C9.11927 8.16916 9.07494 8.10295 9.0447 8.03006C9.01445 7.95716 8.99888 7.87902 8.99888 7.8001C8.99888 7.72118 9.01445 7.64303 9.0447 7.57014C9.07494 7.49724 9.11927 7.43103 9.17515 7.3753Z" fill="currentColor" />
+            </svg>
           </button>
         </div>
       </div>
     </div>
   </header>
+  <AuthModal v-if="showAuthModal" @close="showAuthModal = false" @success="onAuthSuccess" />
 </template>
 
 <script>
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import SuggestDropdown from './SuggestDropdown.vue'
+import AuthModal from './AuthModal.vue'
+import { useFavorites } from '../stores/favorites';
+import { eventBus } from '../utils/eventBus';
+import { authService } from '../services/authService';
+import ProfileDropdownMenu from './ProfileDropdownMenu.vue'
 
 export default {
   name: 'AppHeader',
-  components: { SuggestDropdown },
+  components: { SuggestDropdown, AuthModal, ProfileDropdownMenu },
   setup() {
     const route = useRoute()
     const router = useRouter()
+    const favoritesStore = useFavorites();
     const searchQueryLocal = ref('')
     const showSuggest = ref(false)
-    const isAuthenticated = ref(false)
+    const isAuthenticated = authService.isAuthenticated;
+    const showAuthModal = ref(false)
     
     const currentRoute = computed(() => route.path)
     
@@ -140,6 +144,15 @@ export default {
       if (path === '/catalog') {
         return currentRoute.value.startsWith('/catalog') || 
               (currentRoute.value.startsWith('/books') && route.query.from === 'catalog')
+      }
+      if (path === '/profile/edit') {
+        return currentRoute.value === '/profile/edit'
+      }
+      if (path === '/profile/my-books') {
+        return currentRoute.value === '/profile/my-books' || currentRoute.value.startsWith('/profile/my-books/')
+      }
+      if (path === '/profile/favorites') {
+        return currentRoute.value === '/profile/favorites'
       }
       return currentRoute.value.startsWith(path)
     }
@@ -158,6 +171,16 @@ export default {
       { immediate: true }
     )
 
+    onMounted(() => {
+      if (authService.isAuthenticated.value) {
+        favoritesStore.loadFavorites();
+      }
+      eventBus.addEventListener('show-auth-modal', () => {
+        console.log('show-auth-modal received'); // проверка
+        showAuthModal.value = true;
+      });
+    });
+
     const performSearch = () => {
       const q = searchQueryLocal.value.trim()
       if (!q) return
@@ -172,32 +195,47 @@ export default {
       }, 200)
     }
 
-    watch(
-      () => route.query.q,
-      (newQ) => {
-        if (newQ !== undefined) searchQueryLocal.value = newQ
-      },
-      { immediate: true }
-    )
-    
-    const handleAuthClick = () => {
+    const openAuthModal = () => {
       if (isAuthenticated.value) {
         router.push('/profile')
       } else {
-        router.push('/login')
+        showAuthModal.value = true
       }
     }
+
+    const onAuthSuccess = () => {
+      showAuthModal.value = false;
+      favoritesStore.loadFavorites();
+      router.push('/'); 
+    };
+    
+    const handleProtectedClick = (page) => {
+      if (!isAuthenticated.value) {
+        if (confirm('Войдите, чтобы продолжить')) {
+          openAuthModal()
+        }
+        return
+      }
+      if (page === 'myBooks') goToMyBooks()
+      if (page === 'favorites') goToFavorites()
+    }
+
+    const handleAuthClick = openAuthModal
     
     return {
       searchQueryLocal,
       showSuggest,
       isActive,
-      isAuthenticated,
+      isAuthenticated, 
+      showAuthModal, 
+      openAuthModal, 
+      onAuthSuccess, 
       goToCatalog,
       goToAuthors,
       goToMyBooks,
       goToFavorites,
       performSearch,
+      handleProtectedClick,
       handleAuthClick,
       closeSuggest
     }
@@ -414,14 +452,6 @@ export default {
 
 .auth-text {
   white-space: nowrap;
-}
-
-.auth-icon {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 /* Кнопки активны*/
