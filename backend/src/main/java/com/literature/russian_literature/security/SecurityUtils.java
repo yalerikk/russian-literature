@@ -6,12 +6,12 @@ public class SecurityUtils {
     public static Long getCurrentUserId() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new IllegalStateException("User not authenticated");
+            return null;
         }
         Object principal = authentication.getPrincipal();
         if (principal instanceof CustomUserDetails userDetails) {
             return userDetails.getId();
         }
-        throw new IllegalStateException("Failed to get user ID");
+        return null;
     }
 }

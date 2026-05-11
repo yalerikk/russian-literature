@@ -10,6 +10,7 @@ import com.literature.russian_literature.catalog.domain.dto.CatalogCategory;
 import com.literature.russian_literature.catalog.domain.CatalogCategoryService;
 import com.literature.russian_literature.catalog.domain.BookSelectionService;
 
+import com.literature.russian_literature.security.SecurityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -42,12 +43,13 @@ public class CatalogPageController {
     @GetMapping("/page")
     public ResponseEntity<CatalogPageDto> getCatalogPage() {
         LOG.info("Called getCatalogPage");
+        Long userId = SecurityUtils.getCurrentUserId();
 
         List<CatalogCategory> activeCategories = categoryService.getActiveCategories();
 
         List<CatalogCategoryWithBooksDto> categoriesWithBooks = activeCategories.stream()
                 .map(category -> {
-                    var books = bookSelectionService.getBooksForCategory(category);
+                    var books = bookSelectionService.getBooksForCategory(category, userId);
                     return new CatalogCategoryWithBooksDto(
                             category.id(),
                             category.name(),
@@ -75,9 +77,15 @@ public class CatalogPageController {
             @RequestParam(defaultValue = "7") int size
     ) {
         Pageable pageable = PageRequest.of(page, size);
+        CatalogCategory category = categoryService.getCategoryByCode(code);
+        Page<BookEntity> bookPage = bookSelectionService.getBooksForCategoryPage(category, pageable);
+        /*
         Page<BookEntity> bookPage = bookService.filterBooks(
                 null, null, null, null, null, code, null, null, pageable
         );
-        return ResponseEntity.ok(bookPage.map(bookForCatalogMapper::toDto));
+         */
+        Long userId = SecurityUtils.getCurrentUserId();
+        Page<BookForCatalogDto> dtoPage = bookPage.map(book -> bookForCatalogMapper.toDto(book, userId));
+        return ResponseEntity.ok(dtoPage);
     }
 }

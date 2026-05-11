@@ -7,6 +7,7 @@ import com.literature.russian_literature.catalog.db.BookForCatalogMapper;
 import com.literature.russian_literature.catalog.domain.dto.CatalogCategory;
 import com.literature.russian_literature.ratings.domain.BookRatingService;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -21,12 +22,12 @@ public class BookSelectionService {
     private final BookRepository bookRepository;
     private final BookForCatalogMapper mapper;
 
-    public BookSelectionService(BookRepository bookRepository, BookRatingService ratingService, BookForCatalogMapper mapper) {
+    public BookSelectionService(BookRepository bookRepository, BookForCatalogMapper mapper) {
         this.bookRepository = bookRepository;
         this.mapper = mapper;
     }
 
-    public List<BookForCatalogDto> getBooksForCategory(CatalogCategory category) {
+    public List<BookForCatalogDto> getBooksForCategory(CatalogCategory category, Long userId) {
         List<BookEntity> books;
 
         switch (CatalogCategory.CriteriaType.valueOf(category.criteriaType())) {
@@ -51,7 +52,7 @@ public class BookSelectionService {
         int limit = Math.min(category.booksToShow(), books.size());
         return books.stream()
                 .limit(limit)
-                .map(mapper::toDto)
+                .map(book -> mapper.toDto(book, userId))
                 .collect(Collectors.toList());
     }
 
@@ -82,5 +83,39 @@ public class BookSelectionService {
             });
         }
         return spec;
+    }
+
+    // PAGE
+    public Page<BookEntity> getBooksForCategoryPage(CatalogCategory category, Pageable pageable) {
+        switch (CatalogCategory.CriteriaType.valueOf(category.criteriaType())) {
+            case NEW:
+                return getNewBooksPage(category, pageable);
+            case POPULAR:
+                return getPopularBooksPage(category, pageable);
+            case BY_PERIOD:
+                return getBooksByPeriodPage(category, pageable);
+            case CUSTOM:
+                Specification<BookEntity> spec = buildSpecificationFromCustomCategory(category);
+                return bookRepository.findAll(spec, pageable);
+            default:
+                throw new IllegalArgumentException("Unknown criteria type: " + category.criteriaType());
+        }
+    }
+
+    private Page<BookEntity> getNewBooksPage(CatalogCategory category, Pageable pageable) {
+        LocalDateTime startDate = LocalDateTime.now().minusDays(category.daysInterval());
+        return bookRepository.findByCreatedAtAfterOrderByCreatedAtDesc(startDate, pageable);
+    }
+
+    private Page<BookEntity> getPopularBooksPage(CatalogCategory category, Pageable pageable) {
+        return bookRepository.findTopBooksByRatingPage(pageable);
+    }
+
+    private Page<BookEntity> getBooksByPeriodPage(CatalogCategory category, Pageable pageable) {
+        return bookRepository.findByPublicationYearBetween(
+                category.minPublicationYear(),
+                category.maxPublicationYear(),
+                pageable
+        );
     }
 }

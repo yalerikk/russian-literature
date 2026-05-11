@@ -10,6 +10,9 @@ public record UserBook(
         String authorShortName,
         BookStatus status,
         Integer progress,
+        boolean favorite,
+        Double rating,
+        Integer ratingCount,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {

@@ -1,6 +1,7 @@
 package com.literature.russian_literature.users.api;
 
 import com.literature.russian_literature.security.JwtUtil;
+import com.literature.russian_literature.security.SecurityUtils;
 import com.literature.russian_literature.users.db.UserEntity;
 import com.literature.russian_literature.users.domain.dto.User;
 import com.literature.russian_literature.users.domain.dto.LoginRequest;
@@ -78,7 +79,7 @@ public class UserController {
                 .password("") // пароль не нужен для генерации токена, уже проверен
                 .authorities("ROLE_" + user.role())
                 .build();
-        String token = jwtUtil.generateToken(userDetails);
+        String token = jwtUtil.generateToken(userDetails, user.id());
         Map<String, String> response = new HashMap<>();
         response.put("token", token);
         LOG.info("Logged in user: {}", user.username());
@@ -102,5 +103,12 @@ public class UserController {
         userService.deleteUser(id);
         LOG.info("Deleted user id={}", id);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<UserResponse> getCurrentUser() {
+        Long userId = SecurityUtils.getCurrentUserId();
+        User user = userService.getUserById(userId);
+        return ResponseEntity.ok(new UserResponse(user.id(), user.username(), user.email(), user.role()));
     }
 }

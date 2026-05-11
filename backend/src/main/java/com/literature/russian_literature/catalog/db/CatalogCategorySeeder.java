@@ -23,7 +23,7 @@ public class CatalogCategorySeeder {
                 newBooks.setIsActive(true);
                 newBooks.setBooksToShow(7);
                 newBooks.setCriteriaType("NEW");
-                newBooks.setDaysInterval(30);
+                newBooks.setDaysInterval(100);
                 newBooks.setCreatedAt(LocalDateTime.now());
                 newBooks.setUpdatedAt(LocalDateTime.now());
                 repository.save(newBooks);

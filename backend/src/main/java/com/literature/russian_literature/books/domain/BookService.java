@@ -2,6 +2,7 @@ package com.literature.russian_literature.books.domain;
 
 import com.literature.russian_literature.books.db.*;
 import com.literature.russian_literature.books.domain.dto.Book;
+import com.literature.russian_literature.books.domain.dto.BookDetailDto;
 import com.literature.russian_literature.books.domain.dto.BookFileResponse;
 import com.literature.russian_literature.books.util.BookNormalizer;
 import com.literature.russian_literature.books.util.BookValidator;
@@ -41,6 +42,7 @@ public class BookService {
     private final BookMapper mapper;
     private final BookValidator validator;
     private final BookNormalizer normalizer;
+    private final BookDetailMapper bookDetailMapper;
     private final CatalogCategoryService catalogCategoryService;
     private final AuthorRepository authorRepository;
     private final GenreRepository genreRepository;
@@ -51,7 +53,7 @@ public class BookService {
     private final BookRatingRepository bookRatingRepository;
 
     public BookService(BookRepository repository, BookMapper mapper, BookValidator validator,
-                       BookNormalizer normalizer, CatalogCategoryService catalogCategoryService,
+                       BookNormalizer normalizer, BookDetailMapper bookDetailMapper, CatalogCategoryService catalogCategoryService,
                        AuthorRepository authorRepository, GenreRepository genreRepository, TagRepository tagRepository,
                        BookFileRepository bookFileRepository, CloudinaryService cloudinaryService,
                        UserBookRepository userBookRepository, BookRatingRepository bookRatingRepository) {
@@ -59,6 +61,7 @@ public class BookService {
         this.mapper = mapper;
         this.validator = validator;
         this.normalizer = normalizer;
+        this.bookDetailMapper = bookDetailMapper;
         this.catalogCategoryService = catalogCategoryService;
         this.authorRepository = authorRepository;
         this.genreRepository = genreRepository;
@@ -69,10 +72,10 @@ public class BookService {
         this.bookRatingRepository = bookRatingRepository;
     }
 
-    public Book getBookById(Long id) {
+    public BookDetailDto getBookById(Long id) {
         BookEntity bookEntity = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Book with id = " + id + " not found"));
-        return mapper.toDomain(bookEntity);
+        return bookDetailMapper.toDto(bookEntity);
     }
 
     public String getBookFileUrlByFormat(Long bookId, BookFormat format) {

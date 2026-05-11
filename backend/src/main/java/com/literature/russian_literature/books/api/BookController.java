@@ -5,9 +5,11 @@ import com.literature.russian_literature.books.db.BookMapper;
 import com.literature.russian_literature.books.domain.BookFormat;
 import com.literature.russian_literature.books.domain.dto.Book;
 import com.literature.russian_literature.books.domain.BookService;
+import com.literature.russian_literature.books.domain.dto.BookDetailDto;
 import com.literature.russian_literature.catalog.domain.dto.BookForCatalogDto;
 import com.literature.russian_literature.catalog.db.BookForCatalogMapper;
 
+import com.literature.russian_literature.security.SecurityUtils;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,12 +70,13 @@ public class BookController {
         Pageable pageable = PageRequest.of(page, size);
         Page<BookEntity> bookPage = bookService.filterBooks(genreIds, grade, level, literature, readingType,
                 categoryCode, searchQuery, authorId, pageable);
-        Page<BookForCatalogDto> dtoPage = bookPage.map(bookForCatalogMapper::toDto);
+        Long userId = SecurityUtils.getCurrentUserId();
+        Page<BookForCatalogDto> dtoPage = bookPage.map(book -> bookForCatalogMapper.toDto(book, userId));
         return ResponseEntity.ok(dtoPage);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Book> getBookById(
+    public ResponseEntity<BookDetailDto> getBookById(
             @PathVariable("id") Long id
     ) {
         LOG.info("Called getBookById by id={}", id);

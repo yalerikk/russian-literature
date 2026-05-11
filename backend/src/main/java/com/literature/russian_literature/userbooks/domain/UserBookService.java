@@ -2,6 +2,10 @@ package com.literature.russian_literature.userbooks.domain;
 
 import com.literature.russian_literature.books.db.BookEntity;
 import com.literature.russian_literature.books.db.BookRepository;
+import com.literature.russian_literature.books.domain.BookSpecifications;
+import com.literature.russian_literature.catalog.db.BookForCatalogMapper;
+import com.literature.russian_literature.catalog.domain.dto.BookForCatalogDto;
+import com.literature.russian_literature.tags.domain.TagType;
 import com.literature.russian_literature.userbooks.db.UserBookEntity;
 import com.literature.russian_literature.userbooks.db.UserBookMapper;
 import com.literature.russian_literature.userbooks.db.UserBookRepository;
@@ -14,9 +18,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 
 @Service
 public class UserBookService {
@@ -26,13 +33,16 @@ public class UserBookService {
     private final UserRepository userRepository;
     private final BookRepository bookRepository;
     private final UserBookMapper mapper;
+    private final BookForCatalogMapper bookForCatalogMapper;
 
     public UserBookService(UserBookRepository repository, UserRepository userRepository,
-                           BookRepository bookRepository, UserBookMapper mapper) {
+                           BookRepository bookRepository, UserBookMapper mapper,
+                           BookForCatalogMapper bookForCatalogMapper) {
         this.repository = repository;
         this.userRepository = userRepository;
         this.bookRepository = bookRepository;
         this.mapper = mapper;
+        this.bookForCatalogMapper = bookForCatalogMapper;
     }
 
     // Получить книги пользователя по статусу (и слайдер, и для страницы коллекции)
@@ -52,10 +62,12 @@ public class UserBookService {
                 .orElse(false);
     }
 
-    public BookStatus getBookProgressStatus(Long userId, Long bookId) {
-        return repository.findByUserIdAndBookId(userId, bookId)
+    public UserBookStatusResponse getBookStatus(Long userId, Long bookId) {
+        boolean isFavorite = repository.existsFavoriteByUserIdAndBookId(userId, bookId);
+        BookStatus readingStatus = repository.findStatusByUserIdAndBookId(userId, bookId)
                 .map(UserBookEntity::getStatus)
                 .orElse(null);
+        return new UserBookStatusResponse(isFavorite, readingStatus);
     }
 
     public Integer getProgress(Long userId, Long bookId) {
@@ -144,6 +156,16 @@ public class UserBookService {
         UserBookEntity entry = repository.findByUserIdAndBookId(userId, bookId)
                 .orElseThrow(() -> new EntityNotFoundException("Book not found in user's collection"));
 
+        if (status == null && favorite == null) {
+            entry.setFavorite(false);
+            if (entry.getStatus() == null && !entry.isFavorite()) {
+                repository.delete(entry);
+            } else {
+                repository.save(entry);
+            }
+            return;
+        }
+
         if (status != null && entry.getStatus() == status) {
             entry.setStatus(null);
             entry.setProgress(null);
@@ -160,5 +182,55 @@ public class UserBookService {
             repository.save(entry);
             LOG.info("Updated book in collection (partial removal): bookId={}, userId={}", bookId, userId);
         }
+    }
+
+    // ФИЛЬТРАЦИЯ
+    // Метод для получения отфильтрованных книг по статусу (возвращает BookForCatalogDto)
+    public Page<BookForCatalogDto> getUserBooksWithFilters(Long userId, BookStatus status,
+                                                           String genreIds, String grade, String level,
+                                                           String literature, String readingType, Pageable pageable) {
+        List<Long> bookIds = repository.findBookIdsByUserIdAndStatus(userId, status);
+        if (bookIds.isEmpty()) return Page.empty(pageable);
+        Specification<BookEntity> spec = (root, q, cb) -> root.get("id").in(bookIds);
+        spec = applyFilters(spec, genreIds, grade, level, literature, readingType);
+        Page<BookEntity> books = bookRepository.findAll(spec, pageable);
+        return books.map(book -> bookForCatalogMapper.toDto(book, userId));
+    }
+
+    // Метод для получения отфильтрованных избранных книг
+    public Page<BookForCatalogDto> getFavoritesWithFilters(Long userId,
+                                                           String genreIds, String grade, String level,
+                                                           String literature, String readingType, Pageable pageable) {
+        List<Long> bookIds = repository.findBookIdsByUserIdAndFavorite(userId);
+        if (bookIds.isEmpty()) return Page.empty(pageable);
+        Specification<BookEntity> spec = (root, q, cb) -> root.get("id").in(bookIds);
+        spec = applyFilters(spec, genreIds, grade, level, literature, readingType);
+        Page<BookEntity> books = bookRepository.findAll(spec, pageable);
+        return books.map(book -> bookForCatalogMapper.toDto(book, userId));
+    }
+
+    // Вспомогательный метод для построения спецификации фильтров (переиспользуем)
+    private Specification<BookEntity> applyFilters(Specification<BookEntity> initial,
+                                                   String genreIds, String grade, String level,
+                                                   String literature, String readingType) {
+        List<Long> genreIdList = parseGenreIds(genreIds);
+        Specification<BookEntity> spec = initial;
+        if (genreIdList != null && !genreIdList.isEmpty()) {
+            spec = spec.and(BookSpecifications.byGenres(genreIdList));
+        }
+        spec = spec.and(BookSpecifications.byTagTypeAndName(TagType.GRADE, grade))
+                .and(BookSpecifications.byTagTypeAndName(TagType.LEVEL, level))
+                .and(BookSpecifications.byTagTypeAndName(TagType.CATEGORY, literature))
+                .and(BookSpecifications.byTagTypeAndName(TagType.READING_TYPE, readingType));
+        return spec;
+    }
+
+    private List<Long> parseGenreIds(String genreIds) {
+        if (genreIds == null || genreIds.isBlank()) return null;
+        return Arrays.stream(genreIds.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(Long::parseLong)
+                .toList();
     }
 }

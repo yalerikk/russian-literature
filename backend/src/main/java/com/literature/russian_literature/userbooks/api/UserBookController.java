@@ -1,9 +1,11 @@
 package com.literature.russian_literature.userbooks.api;
 
+import com.literature.russian_literature.catalog.domain.dto.BookForCatalogDto;
 import com.literature.russian_literature.security.SecurityUtils;
 import com.literature.russian_literature.userbooks.domain.BookStatus;
 import com.literature.russian_literature.userbooks.domain.UserBookService;
 import com.literature.russian_literature.userbooks.domain.UserBook;
+import com.literature.russian_literature.userbooks.domain.UserBookStatusResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,26 +31,42 @@ public class UserBookController {
 
     // Получить список книг по статусу (пагинация)
     @GetMapping
-    public ResponseEntity<Page<UserBook>> getUserBooks(
+    public ResponseEntity<Page<BookForCatalogDto>> getUserBooks(
             @RequestParam BookStatus status,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
-        Long userId = SecurityUtils.getCurrentUserId();
-        Pageable pageable = PageRequest.of(page, size);
-        LOG.info("Get user books by status={}, userId={}, page={}, size={}", status, userId, page, size);
-        return ResponseEntity.ok(userBookService.getUserBooksByStatus(userId, status, pageable));
-    }
-
-    @GetMapping("/favorites")
-    public ResponseEntity<Page<UserBook>> getFavorites(
+            @RequestParam(required = false) String genreIds,
+            @RequestParam(required = false) String grade,
+            @RequestParam(required = false) String level,
+            @RequestParam(required = false) String literature,
+            @RequestParam(required = false) String readingType,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
         Long userId = SecurityUtils.getCurrentUserId();
         Pageable pageable = PageRequest.of(page, size);
-        LOG.info("Get favorites for userId={}, page={}, size={}", userId, page, size);
-        return ResponseEntity.ok(userBookService.getFavoriteBooks(userId, pageable));
+        LOG.info("Filtering user books: status={}, userId={}, genreIds={}, grade={}, level={}, literature={}, readingType={}",
+                status, userId, genreIds, grade, level, literature, readingType);
+        Page<BookForCatalogDto> books = userBookService.getUserBooksWithFilters(
+                userId, status, genreIds, grade, level, literature, readingType, pageable);
+        return ResponseEntity.ok(books);
+    }
+
+    @GetMapping("/favorites")
+    public ResponseEntity<Page<BookForCatalogDto>> getFavorites(
+            @RequestParam(required = false) String genreIds,
+            @RequestParam(required = false) String grade,
+            @RequestParam(required = false) String level,
+            @RequestParam(required = false) String literature,
+            @RequestParam(required = false) String readingType,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        Long userId = SecurityUtils.getCurrentUserId();
+        Pageable pageable = PageRequest.of(page, size);
+        LOG.info("Filtering favorites: userId={}, genreIds={}, grade={}, level={}, literature={}, readingType={}",
+                userId, genreIds, grade, level, literature, readingType);
+        Page<BookForCatalogDto> books = userBookService.getFavoritesWithFilters(
+                userId, genreIds, grade, level, literature, readingType, pageable);
+        return ResponseEntity.ok(books);
     }
 
     // GET /users/me/books/slider?status=FAVORITE&page=0&size=7
@@ -66,12 +84,11 @@ public class UserBookController {
 
     // Получить все статусы книги (для страницы книги)
     @GetMapping("/{bookId}/status")
-    public ResponseEntity<BookStatus> getBookStatus(
+    public ResponseEntity<UserBookStatusResponse> getBookStatus(
             @PathVariable Long bookId
     ) {
         Long userId = SecurityUtils.getCurrentUserId();
-        LOG.info("Get book status for bookId={}, userId={}", bookId, userId);
-        return ResponseEntity.ok(userBookService.getBookProgressStatus(userId, bookId));
+        return ResponseEntity.ok(userBookService.getBookStatus(userId, bookId));
     }
 
     @GetMapping("/{bookId}/progress")

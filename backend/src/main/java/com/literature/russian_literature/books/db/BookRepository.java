@@ -29,6 +29,11 @@ public interface BookRepository extends JpaRepository<BookEntity, Long>, JpaSpec
             "LIMIT :limit", nativeQuery = true)
     List<BookEntity> findTopBooksByRating(@Param("limit") int limit);
 
+    Page<BookEntity> findByCreatedAtAfterOrderByCreatedAtDesc(LocalDateTime startDate, Pageable pageable);
+
+    @Query("SELECT b FROM BookEntity b LEFT JOIN b.ratings r GROUP BY b.id ORDER BY COALESCE(AVG(r.rating), 0) DESC, COUNT(r.id) DESC")
+    Page<BookEntity> findTopBooksByRatingPage(Pageable pageable);
+
     // ----- Поиск -----
     @Query("SELECT b FROM BookEntity b WHERE LOWER(b.title) LIKE LOWER(CONCAT('%', :query, '%'))")
     List<BookEntity> findTopByTitleContaining(@Param("query") String query, Pageable pageable); // для автокомплита

@@ -8,6 +8,7 @@ import com.literature.russian_literature.catalog.db.BookForCatalogMapper;
 import com.literature.russian_literature.search.domain.SearchSuggestion;
 import com.literature.russian_literature.search.domain.SearchService;
 
+import com.literature.russian_literature.security.SecurityUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -47,7 +48,8 @@ public class SearchController {
         Page<BookEntity> bookPage = bookService.filterBooks(
                 null, null, null, null, null, null, query, null, pageable
         );
-        return ResponseEntity.ok(bookPage.map(bookForCatalogMapper::toDto));
+        Long userId = SecurityUtils.getCurrentUserId();
+        return ResponseEntity.ok(bookPage.map(book -> bookForCatalogMapper.toDto(book, userId)));
     }
 
     @GetMapping("/authors")

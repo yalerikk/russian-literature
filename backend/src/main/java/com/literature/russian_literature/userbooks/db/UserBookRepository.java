@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -29,4 +30,16 @@ public interface UserBookRepository extends JpaRepository<UserBookEntity, Long> 
     @Modifying
     @Query("DELETE FROM UserBookEntity u WHERE u.book.id = :bookId")
     void deleteByBookId(@Param("bookId") Long bookId);
+
+    @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END FROM UserBookEntity u WHERE u.user.id = :userId AND u.book.id = :bookId AND u.isFavorite = true")
+    boolean existsFavoriteByUserIdAndBookId(@Param("userId") Long userId, @Param("bookId") Long bookId);
+
+    @Query("SELECT u FROM UserBookEntity u WHERE u.user.id = :userId AND u.book.id = :bookId AND u.status IS NOT NULL")
+    Optional<UserBookEntity> findStatusByUserIdAndBookId(@Param("userId") Long userId, @Param("bookId") Long bookId);
+
+    @Query("SELECT u.book.id FROM UserBookEntity u WHERE u.user.id = :userId AND u.status = :status")
+    List<Long> findBookIdsByUserIdAndStatus(@Param("userId") Long userId, @Param("status") BookStatus status);
+
+    @Query("SELECT u.book.id FROM UserBookEntity u WHERE u.user.id = :userId AND u.isFavorite = true")
+    List<Long> findBookIdsByUserIdAndFavorite(@Param("userId") Long userId);
 }
