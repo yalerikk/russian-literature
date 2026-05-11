@@ -1,22 +1,37 @@
+import { authService } from "./authService"; 
+
 // HTTP клиент для работы с API
 class ApiClient {
   constructor(baseURL) {
-    this.baseURL = baseURL || "http://localhost:8080";
+    this.baseURL = baseURL;
   }
 
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
+    const token = localStorage.getItem("jwt_token");
 
-    const defaultOptions = {
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      credentials: "include", // если будет авторизация
+    const headers = {
+      "Content-Type": "application/json",
+      "Accept": "application/json; charset=utf-8",
+      "Accept-Charset": "utf-8",
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...options.headers,
     };
 
     try {
-      const response = await fetch(url, { ...defaultOptions, ...options });
+      console.log(
+        `[API] ${options.method || "GET"} ${url}`,
+        options.body ? JSON.parse(options.body) : ""
+      );
+      const response = await fetch(url, { ...options, headers });
+      console.log(`[API] Ответ ${url}`, response.status, response.statusText);
+
+      if (response.status === 401) {
+        console.warn("[API] 401 Unauthorized – выполняю logout");
+        authService.logout();
+        window.location.reload();
+        throw new Error("Сессия истекла");
+      }
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({
@@ -30,15 +45,29 @@ class ApiClient {
         return null;
       }
 
-      return await response.json();
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+        console.log(
+          `[API] Тело ответа (первые 200 символов):`,
+          JSON.stringify(data).slice(0, 200)
+        );
+        return data;
+      }
+      return null;
     } catch (error) {
       console.error("API Request failed:", error);
       throw error;
     }
   }
 
-  get(endpoint) {
-    return this.request(endpoint, { method: "GET" });
+  get(endpoint, options = {}) {
+    let url = endpoint;
+    if (options.params) {
+      const query = new URLSearchParams(options.params).toString();
+      url += `?${query}`;
+    }
+    return this.request(url, { method: "GET" });
   }
 
   post(endpoint, data) {
@@ -61,6 +90,4 @@ class ApiClient {
 }
 
 // Создаем экземпляр клиента
-export const apiClient = new ApiClient(
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080"
-);
+export const apiClient = new ApiClient('');

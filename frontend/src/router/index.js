@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import CatalogPage from "../pages/CatalogPage.vue";
 import AuthorsPage from "../pages/AuthorsPage.vue";
+import { authService } from "../services/authService";
 
 const routes = [
   {
@@ -40,12 +41,51 @@ const routes = [
     component: () => import("../pages/SearchPage.vue"),
     props: (route) => ({ query: route.query.q }),
   },
+  {
+    path: "/profile",
+    name: "Profile",
+    component: () => import("../pages/ProfilePage.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/profile/my-books",
+    name: "MyBooks",
+    component: () => import("../pages/MyBooks.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/profile/books/:status",
+    name: "Collection",
+    component: () => import("../pages/CollectionPage.vue"),
+    meta: { requiresAuth: true },
+    props: true,
+  },
+  {
+    path: "/profile/favorites",
+    name: "Favorites",
+    component: () => import("../pages/Favorites.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/profile/edit",
+    name: "ProfileEdit",
+    component: () => import("../pages/ProfileEdit.vue"),
+    meta: { requiresAuth: true },
+  },
   // Добавьте другие маршруты позже
 ];
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
+});
+
+router.beforeEach((to, from, next) => {
+  if (to.meta.requiresAuth && !authService.isAuthenticated.value) {
+    next("/");
+  } else {
+    next();
+  }
 });
 
 export default router;
