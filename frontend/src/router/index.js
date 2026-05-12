@@ -1,7 +1,12 @@
 import { createRouter, createWebHistory } from "vue-router";
 import CatalogPage from "../pages/CatalogPage.vue";
 import AuthorsPage from "../pages/AuthorsPage.vue";
+// Admin
 import AdminAuthorsPage from "../pages/admin/AdminAuthorsPage.vue";
+import AdminUsersPage from "../pages/admin/AdminUsersPage.vue";
+import AdminGenresPage from "../pages/admin/AdminGenresPage.vue";
+import AdminTagsPage from "../pages/admin/AdminTagsPage.vue";
+//
 import { authService } from "../services/authService";
 
 const routes = [
@@ -77,6 +82,24 @@ const routes = [
     path: "/admin/authors",
     name: "AdminAuthors",
     component: AdminAuthorsPage,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: "/admin/users",
+    name: "AdminUsers",
+    component: AdminUsersPage,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: "/admin/genres",
+    name: "AdminGenres",
+    component: AdminGenresPage,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: "/admin/tags",
+    name: "AdminTags",
+    component: AdminTagsPage,
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   // Добавьте другие маршруты позже

@@ -39,10 +39,9 @@ export const authService = {
     const token = this.getToken();
     if (!token) return null;
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.userId || payload.id || payload.sub;
-    } catch (e) {
-      console.error('Ошибка парсинга токена', e);
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return payload.userId || payload.id || null;
+    } catch {
       return null;
     }
   },
@@ -51,6 +50,8 @@ export const authService = {
     if (!token) return null;
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
+      let role = payload.role;
+      if (role && role.startsWith("ROLE_")) role = role.substring(5);
       return {
         id: payload.userId || payload.id,
         username: payload.sub,
