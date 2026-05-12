@@ -264,16 +264,22 @@ async function saveProfile() {
   }
 }
 
-function logout() {
-  authService.logout()
-  router.push('/')
+async function logout() {
+  const confirmed = await confirmModal.value.open('Вы уверены, что хотите выйти из аккаунта?')
+  if (!confirmed) return
+  try {
+    authService.logout()
+    router.push('/')
+  } catch (err) {
+    alert('Не удалось выйти из аккаунта. ' + (err.response?.data?.message || ''))
+  }
 }
 
 async function confirmDeleteAccount() {
   const confirmed = await confirmModal.value.open('Вы уверены, что хотите удалить аккаунт? Это действие необратимо.')
   if (!confirmed) return
   try {
-    const userId = getUserIdFromToken()
+    const userId = authService.getUserIdFromToken()
     await apiClient.delete(`/users/${userId}`)
     authService.logout()
     router.push('/')

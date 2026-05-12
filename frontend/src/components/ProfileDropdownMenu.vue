@@ -1,5 +1,5 @@
 <template>
-  <div class="dropdown">
+  <div class="dropdown" @click.stop>
     <button class="dropdown-toggle" @click="toggleDropdown">
       <span class="auth-text">Профиль</span>
       <div class="dropdown-icon">
@@ -8,7 +8,7 @@
         </svg>
       </div>
     </button>
-    <div v-if="isOpen" class="dropdown-menu" @click.stop>
+    <div v-if="isOpen" class="dropdown-menu" @click="closeDropdown">
       <router-link to="/profile/my-books" class="dropdown-item">Мои книги</router-link>
       <router-link to="/profile/favorites" class="dropdown-item">Избранное</router-link>
       <router-link to="/profile/edit" class="dropdown-item">Управление аккаунтом</router-link>
@@ -16,12 +16,16 @@
       <!-- Админские пункты -->
       <template v-if="isAdmin">
         <router-link to="/admin/authors" class="dropdown-item">Авторы</router-link>
-        <!-- позже добавятся: Книги, Пользователи, Жанры, Теги, Категории -->
+        <router-link to="/admin/users" class="dropdown-item">Пользователи</router-link>
+        <router-link to="/admin/genres" class="dropdown-item">Жанры</router-link>
+        <router-link to="/admin/tags" class="dropdown-item">Теги</router-link>
+        <!-- позже добавятся: Книги, Категории -->
       </template>
 
       <hr class="dropdown-divider" />
       <button @click="logout" class="dropdown-item logout">Выйти</button>
     </div>
+    <ConfirmModal ref="confirmModal" />
   </div>
 </template>
 
@@ -29,12 +33,16 @@
 import { ref, computed } from 'vue'
 import { useFavorites } from '../stores/favorites';
 import { authService } from '../services/authService';
+import ConfirmModal from '../components/ConfirmModal.vue'
 import { useRouter } from 'vue-router';
 
 const isOpen = ref(false)
 const favoritesStore = useFavorites();
 const router = useRouter();
 const isAuthenticated = authService.isAuthenticated
+const confirmModal = ref(null)
+
+const closeDropdown = () => { isOpen.value = false }
 
 const isAdmin = computed(() => {
   const user = authService.getUserFromToken();
@@ -45,10 +53,16 @@ const toggleDropdown = () => {
   isOpen.value = !isOpen.value
 }
 
-const logout = () => {
-  authService.logout()
-  favoritesStore.clearFavorites();
-  router.push('/');
+async function logout() {
+  const confirmed = await confirmModal.value.open('Вы уверены, что хотите выйти из аккаунта?')
+  if (!confirmed) return
+  try {
+    authService.logout()
+    favoritesStore.clearFavorites();
+    router.push('/');
+  } catch (err) {
+    alert('Не удалось выйти из аккаунта. ' + (err.response?.data?.message || ''))
+  }
 }
 </script>
 
