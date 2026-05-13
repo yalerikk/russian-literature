@@ -6,6 +6,7 @@ import AdminAuthorsPage from "../pages/admin/AdminAuthorsPage.vue";
 import AdminUsersPage from "../pages/admin/AdminUsersPage.vue";
 import AdminGenresPage from "../pages/admin/AdminGenresPage.vue";
 import AdminTagsPage from "../pages/admin/AdminTagsPage.vue";
+import AdminBooksPage from "../pages/admin/AdminBooksPage.vue";
 //
 import { authService } from "../services/authService";
 
@@ -100,6 +101,12 @@ const routes = [
     path: "/admin/tags",
     name: "AdminTags",
     component: AdminTagsPage,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: "/admin/books",
+    name: "AdminBooks",
+    component: AdminBooksPage,
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   // Добавьте другие маршруты позже

@@ -19,6 +19,7 @@
         <router-link to="/admin/users" class="dropdown-item">Пользователи</router-link>
         <router-link to="/admin/genres" class="dropdown-item">Жанры</router-link>
         <router-link to="/admin/tags" class="dropdown-item">Теги</router-link>
+        <router-link to="/admin/books" class="dropdown-item">Книги</router-link>
         <!-- позже добавятся: Книги, Категории -->
       </template>
 

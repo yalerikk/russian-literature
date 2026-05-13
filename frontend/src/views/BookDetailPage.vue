@@ -126,10 +126,9 @@
                 <div class="download-section">
                   <div class="download-label">Скачать в формате:</div>
                   <div class="format-buttons">
-                    <button class="format-btn" @click="download('epub')">EPUB</button>
-                    <button class="format-btn" @click="download('fb2')">FB2</button>
-                    <button class="format-btn" @click="download('pdf')">PDF</button>
-                    <button class="format-btn" @click="download('txt')">TXT</button>
+                    <button v-for="f in availableFiles" :key="f.id" class="format-btn" @click="download(f.format)">
+                      {{ f.format }}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -204,6 +203,7 @@ import RatingStars from '../components/RatingStars.vue'
 import AuthModal from '../components/AuthModal.vue'
 import { useFavorites } from '../stores/favorites';
 import { authService } from '../services/authService'
+import { translit } from '../utils/translit'
 
 const route = useRoute()
 const router = useRouter()
@@ -220,6 +220,7 @@ const categoryName = ref(route.query.categoryName || '')
 const categoryCode = ref(route.query.categoryCode || '')
 const breadcrumbPath = computed(() => route.query.from || 'catalog')
 const collectionName = ref(route.query.collection || '')
+const availableFiles = ref([])
 const confirmModal = ref(null)
 const showAuthModal = ref(false)
 
@@ -251,6 +252,15 @@ async function loadBookData() {
     error.value = 'Не удалось загрузить книгу'
   } finally {
     loading.value = false
+  }
+}
+
+async function loadFiles() {
+  try {
+    const res = await apiClient.get(`/books/${book.value.id}/files`)
+    availableFiles.value = res
+  } catch (e) {
+    console.warn(e)
   }
 }
 
@@ -341,6 +351,56 @@ async function updateCollection(status) {
   }
 }
 
+async function download(format) {
+  if (!isAuthenticated.value) return openAuthModalWithConfirm();
+  try {
+    const data = await apiClient.get(`/books/${book.value.id}/download?format=${format}`);
+    let url = data?.url || data?.link || (typeof data === 'string' ? data : null);
+    if (!url) throw new Error('Ссылка не получена');
+
+    // Скачиваем файл и переименовываем
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = `${translit(book.value.title)}.${format.toLowerCase()}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(blobUrl);
+  } catch (err) {
+    alert('Не удалось скачать файл');
+  }
+}
+
+async function readOnline() {
+  if (!isAuthenticated.value) return openAuthModalWithConfirm();
+
+  const pdfFile = availableFiles.value.find(f => f.format === 'PDF');
+  if (!pdfFile) {
+    alert('PDF-версия книги недоступна для онлайн‑чтения');
+    return;
+  }
+
+  if (!currentStatus.value || currentStatus.value !== 'READING') {
+    await updateCollection('READING');
+    currentStatus.value = 'READING';
+  }
+
+  try {
+    const res = await apiClient.get(`/books/${book.value.id}/download?format=PDF`);
+    const url = res?.url || res?.link || (typeof res === 'string' ? res : null);
+    if (url) {
+      window.open(url, '_blank');
+    } else {
+      alert('Не удалось получить ссылку для чтения');
+    }
+  } catch (err) {
+    alert('Не удалось открыть книгу для чтения');
+  }
+}
+
 function getStatusLabel(status) {
   const map = { WISHLIST: 'Отложенные', READING: 'Читаю', READ: 'Прочитано' }
   return map[status] || status
@@ -370,11 +430,6 @@ const onAuthSuccess = () => {
   }
 }
 
-const readOnline = () => alert('Функция чтения онлайн будет позже')
-const download = (format) => {
-  if (!isAuthenticated.value) return openAuthModalWithConfirm()
-  alert(`Скачивание ${format.toUpperCase()} будет позже`)
-}
 const handleImageError = (event) => { event.target.src = '/images/cover.png' }
 const openAuthModal = () => {
   showAuthModal.value = true
@@ -382,6 +437,7 @@ const openAuthModal = () => {
 
 onMounted(async () => {
   await loadBookData()
+  if (book.value) await loadFiles()
 })
 </script>
 
