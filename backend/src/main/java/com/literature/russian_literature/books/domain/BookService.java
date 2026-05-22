@@ -20,19 +20,20 @@ import com.literature.russian_literature.tags.domain.TagType;
 import com.literature.russian_literature.userbooks.db.UserBookRepository;
 
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class BookService {
@@ -84,8 +85,9 @@ public class BookService {
         return file.getFileUrl();
     }
 
-    public Page<BookEntity> getAllBooks(Pageable pageable) {
-        return repository.findAll(pageable);
+    public Page<BookDetailDto> getAllBooks(Pageable pageable) {
+        Page<BookEntity> books = repository.findAll(pageable);
+        return books.map(bookDetailMapper::toDto);
     }
 
     @Transactional
@@ -167,23 +169,31 @@ public class BookService {
         LOG.info("Deleted book: '{}' with id = {}", book.getTitle(), id);
     }
 
-    public Page<BookEntity> filterBooks(String genreIds, String grade, String level,
-                                        String literature, String readingType, String categoryCode, String searchQuery, Long authorId,
-                                        Pageable pageable
-    ) {
+    // ========== НОВЫЕ ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ==========
+
+    /**
+     * Построение спецификации для фильтров (без учёта категории и сортировки)
+     */
+    private Specification<BookEntity> buildFilterSpecification(
+            String genreIds, String grade, String level,
+            String literature, String readingType,
+            String searchQuery, Long authorId) {
+
         Specification<BookEntity> spec = (root, query, cb) -> cb.conjunction();
 
-        // 1. Жанры
-        List<Long> genreIdList = null;
+        // Жанры
         if (genreIds != null && !genreIds.isBlank()) {
-            genreIdList = Arrays.stream(genreIds.split(","))
+            List<Long> genreIdList = Arrays.stream(genreIds.split(","))
                     .map(String::trim)
                     .filter(s -> !s.isEmpty())
                     .map(Long::parseLong)
                     .toList();
-        }
-        if (genreIdList != null && !genreIdList.isEmpty()) {
-            spec = spec.and(BookSpecifications.byGenres(genreIdList));
+            if (!genreIdList.isEmpty()) {
+                spec = spec.and((root, q, cb) -> {
+                    var genresJoin = root.join("genres");
+                    return genresJoin.get("id").in(genreIdList);
+                });
+            }
         }
 
         spec = spec.and(BookSpecifications.byTagTypeAndName(TagType.GRADE, grade))
@@ -191,18 +201,97 @@ public class BookService {
                 .and(BookSpecifications.byTagTypeAndName(TagType.CATEGORY, literature))
                 .and(BookSpecifications.byTagTypeAndName(TagType.READING_TYPE, readingType));
 
-        if (categoryCode != null && !categoryCode.isBlank()) {
-            CatalogCategory category = catalogCategoryService.getCategoryByCode(categoryCode);
-            if ("POPULAR".equals(category.criteriaType())) {
-                List<Long> popularIds = repository.findTopBooksRatingIds(500);
-                if (popularIds.isEmpty()) {
-                    return Page.empty(pageable);
-                }
-                spec = spec.and((root, q, cb) -> root.get("id").in(popularIds));
-            } else {
-                spec = spec.and(buildCategorySpecification(category));
-            }
+        // Поиск по названию
+        if (searchQuery != null && !searchQuery.isBlank()) {
+            spec = spec.and((root, q, cb) ->
+                    cb.like(cb.lower(root.get("title")), "%" + searchQuery.toLowerCase() + "%"));
         }
+
+        if (authorId != null) {
+            spec = spec.and((root, q, cb) -> cb.equal(root.get("author").get("id"), authorId));
+        }
+
+        return spec;
+    }
+
+    /**
+     * Пагинация в памяти с сохранением порядка ID
+     */
+    private Page<BookEntity> paginateInMemory(List<Long> orderedIds, Pageable pageable) {
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), orderedIds.size());
+        if (start >= orderedIds.size()) {
+            return Page.empty(pageable);
+        }
+        List<Long> idsPage = orderedIds.subList(start, end);
+        List<BookEntity> unordered = repository.findAllById(idsPage);
+        // Восстанавливаем порядок
+        Map<Long, BookEntity> idToBook = unordered.stream()
+                .collect(Collectors.toMap(BookEntity::getId, Function.identity()));
+        List<BookEntity> ordered = idsPage.stream()
+                .map(idToBook::get)
+                .collect(Collectors.toList());
+        return new PageImpl<>(ordered, pageable, orderedIds.size());
+    }
+
+    // ========== НОВЫЙ МЕТОД ДЛЯ КАТЕГОРИЙ С ФИЛЬТРАЦИЕЙ ==========
+
+    @Transactional(readOnly = true)
+    public Page<BookEntity> filterCategoryBooks(
+            String categoryCode,
+            String genreIds,
+            String grade,
+            String level,
+            String literature,
+            String readingType,
+            Pageable pageable) {
+
+        CatalogCategory category = catalogCategoryService.getCategoryByCode(categoryCode);
+        String criteria = category.criteriaType();
+
+        // Спецификация для всех фильтров (кроме сортировки)
+        Specification<BookEntity> filterSpec = buildFilterSpecification(
+                genreIds, grade, level, literature, readingType, null, null);
+
+        switch (criteria) {
+            case "NEW":
+                List<Long> allIdsSortedByDate = repository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"))
+                        .stream().map(BookEntity::getId).toList();
+                List<Long> filteredIds = repository.findAll(filterSpec).stream()
+                        .map(BookEntity::getId).toList();
+                List<Long> resultIds = allIdsSortedByDate.stream()
+                        .filter(filteredIds::contains).collect(Collectors.toList());
+                return paginateInMemory(resultIds, pageable);
+
+            case "POPULAR":
+                List<Long> sortedByRatingIds = repository.findTopBooksRatingIds(Integer.MAX_VALUE);
+                List<Long> filteredIdsPop = repository.findAll(filterSpec).stream()
+                        .map(BookEntity::getId)
+                        .toList();
+                List<Long> resultIdsPop = sortedByRatingIds.stream()
+                        .filter(filteredIdsPop::contains)
+                        .collect(Collectors.toList());
+                return paginateInMemory(resultIdsPop, pageable);
+
+            case "BY_PERIOD":
+                Specification<BookEntity> periodSpec = filterSpec.and((root, q, cb) ->
+                        cb.between(root.get("publicationYear"), category.minPublicationYear(), category.maxPublicationYear()));
+                List<BookEntity> periodBooks = repository.findAll(periodSpec, Sort.by(Sort.Direction.DESC, "publicationYear"));
+                List<Long> periodIds = periodBooks.stream().map(BookEntity::getId).collect(Collectors.toList());
+                return paginateInMemory(periodIds, pageable);
+
+            default: // CUSTOM
+                Specification<BookEntity> customSpec = filterSpec.and(buildCategorySpecification(category));
+                return repository.findAll(customSpec, pageable);
+        }
+    }
+
+    public Page<BookEntity> filterBooks(String genreIds, String grade, String level,
+                                        String literature, String readingType, String searchQuery, Long authorId,
+                                        Pageable pageable
+    ) {
+        Specification<BookEntity> spec = buildFilterSpecification(
+                genreIds, grade, level, literature, readingType, searchQuery, authorId);
 
         if (searchQuery != null && !searchQuery.isBlank()) {
             spec = spec.and((root, q, cb) ->
@@ -235,10 +324,10 @@ public class BookService {
             throw new IllegalArgumentException("File of format " + format + " already exists for this book");
         }
 
-        if (format != BookFormat.PDF) {
-            boolean hasPdf = bookFileRepository.existsByBookIdAndFormat(bookId, BookFormat.PDF);
-            if (!hasPdf) {
-                throw new IllegalArgumentException("You must upload PDF file first");
+        if (format != BookFormat.EPUB) {
+            boolean hasEPUB = bookFileRepository.existsByBookIdAndFormat(bookId, BookFormat.EPUB);
+            if (!hasEPUB) {
+                throw new IllegalArgumentException("You must upload EPUB file first");
             }
         }
 
@@ -278,10 +367,6 @@ public class BookService {
 
     private Specification<BookEntity> buildCategorySpecification(CatalogCategory category) {
         return switch (category.criteriaType()) {
-            case "NEW" -> (root, query, cb) -> {
-                LocalDateTime startDate = LocalDateTime.now().minusDays(category.daysInterval());
-                return cb.greaterThanOrEqualTo(root.get("createdAt"), startDate);
-            };
             case "BY_PERIOD" -> (root, query, cb) -> {
                 if (category.minPublicationYear() != null && category.maxPublicationYear() != null) {
                     return cb.between(root.get("publicationYear"),

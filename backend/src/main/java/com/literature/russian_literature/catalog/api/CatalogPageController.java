@@ -9,8 +9,8 @@ import com.literature.russian_literature.catalog.db.BookForCatalogMapper;
 import com.literature.russian_literature.catalog.domain.dto.CatalogCategory;
 import com.literature.russian_literature.catalog.domain.CatalogCategoryService;
 import com.literature.russian_literature.catalog.domain.BookSelectionService;
-
 import com.literature.russian_literature.security.SecurityUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -79,11 +79,31 @@ public class CatalogPageController {
         Pageable pageable = PageRequest.of(page, size);
         CatalogCategory category = categoryService.getCategoryByCode(code);
         Page<BookEntity> bookPage = bookSelectionService.getBooksForCategoryPage(category, pageable);
-        /*
-        Page<BookEntity> bookPage = bookService.filterBooks(
-                null, null, null, null, null, code, null, null, pageable
-        );
-         */
+        Long userId = SecurityUtils.getCurrentUserId();
+        Page<BookForCatalogDto> dtoPage = bookPage.map(book -> bookForCatalogMapper.toDto(book, userId));
+        return ResponseEntity.ok(dtoPage);
+    }
+
+    /**
+     * Новый endpoint для страницы категории с фильтрацией и сохранением сортировки
+     */
+    @GetMapping("/category/{code}/books/filter")
+    public ResponseEntity<Page<BookForCatalogDto>> filterCategoryBooks(
+            @PathVariable String code,
+            @RequestParam(required = false) String genreIds,
+            @RequestParam(required = false) String grade,
+            @RequestParam(required = false) String level,
+            @RequestParam(required = false) String literature,
+            @RequestParam(required = false) String readingType,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        LOG.info("Called filterBooks with genreIds={}, grade={}, level={}, literature={}, readingType={}, " +
+                        "page={}, size={}",
+                genreIds, grade, level, literature, readingType, page, size);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<BookEntity> bookPage = bookService.filterCategoryBooks(
+                code, genreIds, grade, level, literature, readingType, pageable);
         Long userId = SecurityUtils.getCurrentUserId();
         Page<BookForCatalogDto> dtoPage = bookPage.map(book -> bookForCatalogMapper.toDto(book, userId));
         return ResponseEntity.ok(dtoPage);

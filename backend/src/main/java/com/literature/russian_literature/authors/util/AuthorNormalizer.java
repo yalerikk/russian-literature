@@ -22,7 +22,8 @@ public class AuthorNormalizer {
                 author.birthDate(),
                 author.deathDate(),
                 stringNormalizer.replaceYo(author.biography()),
-                author.photoUrl()
+                author.photoUrl(),
+                author.bookCount()
         );
     }
 }

@@ -24,8 +24,6 @@ public record CatalogCategory(
 
         Integer minPublicationYear,
         Integer maxPublicationYear,
-        Double minRating,
-        Integer daysInterval,
 
         Set<Long> tagIds,
 

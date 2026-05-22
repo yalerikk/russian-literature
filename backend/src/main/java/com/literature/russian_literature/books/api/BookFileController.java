@@ -51,7 +51,7 @@ public class BookFileController {
         try {
             globalValidator.validateBookFileFormat(file, format);
 
-            String url = cloudinaryService.uploadFile(file, "books");
+            String url = cloudinaryService.uploadBookFile(file, "books");
             String publicId = CloudinaryService.extractPublicIdFromUrl(url);
 
             BookFileResponse response = bookService.addFileToBook(bookId, url, format, publicId);

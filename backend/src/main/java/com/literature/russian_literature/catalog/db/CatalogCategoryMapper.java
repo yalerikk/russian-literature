@@ -25,8 +25,6 @@ public class CatalogCategoryMapper {
                 entity.getCriteriaType(),
                 entity.getMinPublicationYear(),
                 entity.getMaxPublicationYear(),
-                entity.getMinRating(),
-                entity.getDaysInterval(),
                 tagIds,
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
@@ -45,8 +43,6 @@ public class CatalogCategoryMapper {
         entity.setCriteriaType(category.criteriaType());
         entity.setMinPublicationYear(category.minPublicationYear());
         entity.setMaxPublicationYear(category.maxPublicationYear());
-        entity.setMinRating(category.minRating());
-        entity.setDaysInterval(category.daysInterval());
         entity.setTags(tags);
         entity.setCreatedAt(category.createdAt());
         entity.setUpdatedAt(category.updatedAt());

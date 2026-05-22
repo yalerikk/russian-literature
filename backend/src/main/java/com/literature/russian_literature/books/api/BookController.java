@@ -1,7 +1,6 @@
 package com.literature.russian_literature.books.api;
 
 import com.literature.russian_literature.books.db.BookEntity;
-import com.literature.russian_literature.books.db.BookMapper;
 import com.literature.russian_literature.books.domain.BookFormat;
 import com.literature.russian_literature.books.domain.dto.Book;
 import com.literature.russian_literature.books.domain.BookService;
@@ -21,7 +20,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -31,22 +29,19 @@ public class BookController {
 
     private final BookService bookService;
     private final BookForCatalogMapper bookForCatalogMapper;
-    private final BookMapper mapper;
 
-    public BookController(BookService bookService, BookForCatalogMapper bookForCatalogMapper, BookMapper mapper) {
+    public BookController(BookService bookService, BookForCatalogMapper bookForCatalogMapper) {
         this.bookService = bookService;
         this.bookForCatalogMapper = bookForCatalogMapper;
-        this.mapper = mapper;
     }
 
     @GetMapping("/admin/list")
-    public ResponseEntity<Page<Book>> getBooksForAdmin(
+    public ResponseEntity<Page<BookDetailDto>> getBooksForAdmin(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<BookEntity> bookPage = bookService.getAllBooks(pageable);
-        Page<Book> dtoPage = bookPage.map(mapper::toDomain);
+        Page<BookDetailDto> dtoPage = bookService.getAllBooks(pageable);
         LOG.info("Admin list: page={}, size={}, total={}", page, size, dtoPage.getTotalElements());
         return ResponseEntity.ok(dtoPage);
     }
@@ -58,18 +53,17 @@ public class BookController {
             @RequestParam(required = false) String level,
             @RequestParam(required = false) String literature,
             @RequestParam(required = false) String readingType,
-            @RequestParam(required = false) String categoryCode,
             @RequestParam(required = false) String searchQuery,
             @RequestParam(required = false) Long authorId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
         LOG.info("Called filterBooks with genreIds={}, grade={}, level={}, literature={}, readingType={}, " +
-                        "categoryCode={}, searchQuery={}, authorId={}, page={}, size={}",
-                genreIds, grade, level, literature, readingType, categoryCode, searchQuery, authorId, page, size);
+                        "searchQuery={}, authorId={}, page={}, size={}",
+                genreIds, grade, level, literature, readingType, searchQuery, authorId, page, size);
         Pageable pageable = PageRequest.of(page, size);
         Page<BookEntity> bookPage = bookService.filterBooks(genreIds, grade, level, literature, readingType,
-                categoryCode, searchQuery, authorId, pageable);
+                searchQuery, authorId, pageable);
         Long userId = SecurityUtils.getCurrentUserId();
         Page<BookForCatalogDto> dtoPage = bookPage.map(book -> bookForCatalogMapper.toDto(book, userId));
         return ResponseEntity.ok(dtoPage);
@@ -88,9 +82,9 @@ public class BookController {
             @PathVariable Long id,
             @RequestParam BookFormat format
     ) {
-        if (format != BookFormat.PDF) {
+        if (format != BookFormat.EPUB) {
             LOG.warn("Unsupported read format {} for book {}", format, id);
-            throw new IllegalArgumentException("Online reading is supported only for PDF format");
+            throw new IllegalArgumentException("Online reading is supported only for EPUB format");
         }
         String url = bookService.getBookFileUrlByFormat(id, format);
         LOG.info("Redirect {} to read book {}", url, id);

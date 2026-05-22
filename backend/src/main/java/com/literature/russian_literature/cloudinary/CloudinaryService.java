@@ -32,6 +32,17 @@ public class CloudinaryService {
         return uploadResult.get("secure_url").toString();
     }
 
+    public String uploadBookFile(MultipartFile file, String subfolder) throws IOException {
+        Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(),
+                ObjectUtils.asMap(
+                        "folder", "russian-literature/" + subfolder,
+                        "public_id", UUID.randomUUID().toString(),
+                        "resource_type", "raw",
+                        "overwrite", true
+                ));
+        return uploadResult.get("secure_url").toString();
+    }
+
     public void deleteFile(String publicId, String resourceType) throws IOException {
         if (publicId == null || publicId.isBlank()) {
             LOG.warn("Attempted to delete file with empty publicId, skipping");

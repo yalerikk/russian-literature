@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Formula;
 
 import java.time.LocalDate;
 
@@ -32,6 +33,22 @@ public class AuthorEntity {
     private String biography;
 
     private String photoUrl;
+
+    @Formula("(SELECT COUNT(*) FROM books b WHERE b.author_id = id)")
+    private int bookCount;
+
+    public AuthorEntity(Long id, String firstName, String lastName, String middleName,
+                        LocalDate birthDate, LocalDate deathDate, String biography, String photoUrl) {
+        this.id = id;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.middleName = middleName;
+        this.birthDate = birthDate;
+        this.deathDate = deathDate;
+        this.biography = biography;
+        this.photoUrl = photoUrl;
+        // bookCount вычисляется формулой
+    }
 
     public String getFullName() {
         return lastName + " " + firstName +

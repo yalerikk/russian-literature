@@ -8,6 +8,7 @@ import com.literature.russian_literature.users.db.UserMapper;
 import com.literature.russian_literature.users.db.UserRepository;
 import com.literature.russian_literature.users.domain.dto.LoginRequest;
 import com.literature.russian_literature.users.domain.dto.User;
+import com.literature.russian_literature.users.domain.dto.UserUpdateRequest;
 import com.literature.russian_literature.users.util.UserNormalizer;
 import com.literature.russian_literature.users.util.UserValidator;
 
@@ -85,7 +86,7 @@ public class UserService {
     }
 
     @Transactional
-    public User updateUser(Long id, User userUpdate) {
+    public User updateUser(Long id, UserUpdateRequest request) {
         Long currentUserId = SecurityUtils.getCurrentUserId();
         UserEntity currentUser = repository.findById(currentUserId)
                 .orElseThrow(() -> new EntityNotFoundException("Current user not found"));
@@ -98,21 +99,27 @@ public class UserService {
         UserEntity existing = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
-        User normalizedUpdate = userNormalizer.normalizeUser(userUpdate);
-        userValidator.validateForUpdate(id, normalizedUpdate);
+        UserUpdateRequest normalized = userNormalizer.normalizeUserUpdate(request);
+        userValidator.validateForUpdate(id, normalized);
 
-        if (normalizedUpdate.username() != null && !normalizedUpdate.username().equals(existing.getUsername())) {
-            existing.setUsername(normalizedUpdate.username());
+        if (normalized.username() != null && !normalized.username().equals(existing.getUsername())) {
+            existing.setUsername(normalized.username());
         }
-        if (normalizedUpdate.email() != null && !normalizedUpdate.email().equals(existing.getEmail())) {
-            existing.setEmail(normalizedUpdate.email());
+        if (normalized.email() != null && !normalized.email().equals(existing.getEmail())) {
+            existing.setEmail(normalized.email());
         }
-        if (normalizedUpdate.password() != null) {
-            existing.setPassword(passwordEncoder.encode(normalizedUpdate.password()));
+        if (normalized.password() != null && !normalized.password().isBlank()) {
+            existing.setPassword(passwordEncoder.encode(normalized.password()));
         }
-        if (isAdmin && normalizedUpdate.role() != null) {
-            existing.setRole(normalizedUpdate.role());
-            LOG.info("Admin updated role for user id={} to {}", id, normalizedUpdate.role());
+        if (isAdmin && normalized.role() != null) {
+            if (id.equals(currentUserId) && normalized.role() != UserRole.ADMIN) {
+                long adminCount = repository.countByRole(UserRole.ADMIN);
+                if (adminCount <= 1) {
+                    throw new IllegalStateException("Cannot demote the last admin user");
+                }
+            }
+            existing.setRole(normalized.role());
+            LOG.info("Admin updated role for user id={} to {}", id, normalized.role());
         }
 
         UserEntity updated = repository.save(existing);

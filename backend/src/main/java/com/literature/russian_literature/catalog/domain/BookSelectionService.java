@@ -10,6 +10,7 @@ import com.literature.russian_literature.ratings.domain.BookRatingService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
@@ -57,8 +58,8 @@ public class BookSelectionService {
     }
 
     private List<BookEntity> getNewBooks(CatalogCategory category) {
-        LocalDateTime startDate = LocalDateTime.now().minusDays(category.daysInterval());
-        return bookRepository.findRecentBooks(startDate, category.booksToShow());
+        Pageable pageable = PageRequest.of(0, category.booksToShow(), Sort.by(Sort.Direction.DESC, "createdAt"));
+        return bookRepository.findAll(pageable).getContent();
     }
 
     private List<BookEntity> getPopularBooks(CatalogCategory category) {
@@ -66,7 +67,7 @@ public class BookSelectionService {
     }
 
     private List<BookEntity> getBooksByPeriod(CatalogCategory category) {
-        Pageable pageable = PageRequest.of(0, category.booksToShow());
+        Pageable pageable = PageRequest.of(0, category.booksToShow(), Sort.by(Sort.Direction.DESC, "publicationYear"));
         return bookRepository.findByPublicationYearBetween(
                 category.minPublicationYear(),
                 category.maxPublicationYear(),
@@ -103,8 +104,8 @@ public class BookSelectionService {
     }
 
     private Page<BookEntity> getNewBooksPage(CatalogCategory category, Pageable pageable) {
-        LocalDateTime startDate = LocalDateTime.now().minusDays(category.daysInterval());
-        return bookRepository.findByCreatedAtAfterOrderByCreatedAtDesc(startDate, pageable);
+        return bookRepository.findAll(PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(),
+                Sort.by(Sort.Direction.DESC, "createdAt")));
     }
 
     private Page<BookEntity> getPopularBooksPage(CatalogCategory category, Pageable pageable) {
@@ -112,10 +113,15 @@ public class BookSelectionService {
     }
 
     private Page<BookEntity> getBooksByPeriodPage(CatalogCategory category, Pageable pageable) {
+        Pageable sortedPageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                Sort.by(Sort.Direction.DESC, "publicationYear")
+        );
         return bookRepository.findByPublicationYearBetween(
                 category.minPublicationYear(),
                 category.maxPublicationYear(),
-                pageable
+                sortedPageable
         );
     }
 }

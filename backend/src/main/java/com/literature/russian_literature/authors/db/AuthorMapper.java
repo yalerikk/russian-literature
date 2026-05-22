@@ -15,20 +15,21 @@ public class AuthorMapper {
                 entity.getBirthDate(),
                 entity.getDeathDate(),
                 entity.getBiography(),
-                entity.getPhotoUrl()
+                entity.getPhotoUrl(),
+                entity.getBookCount()   // int -> Integer
         );
     }
 
     public AuthorEntity toEntity(Author author) {
-        return new AuthorEntity(
-                author.id(),
-                author.firstName(),
-                author.lastName(),
-                author.middleName(),
-                author.birthDate(),
-                author.deathDate(),
-                author.biography(),
-                author.photoUrl()
-        );
+        AuthorEntity entity = new AuthorEntity();
+        entity.setId(author.id());
+        entity.setFirstName(author.firstName());
+        entity.setLastName(author.lastName());
+        entity.setMiddleName(author.middleName());
+        entity.setBirthDate(author.birthDate());
+        entity.setDeathDate(author.deathDate());
+        entity.setBiography(author.biography());
+        entity.setPhotoUrl(author.photoUrl());
+        return entity;
     }
 }

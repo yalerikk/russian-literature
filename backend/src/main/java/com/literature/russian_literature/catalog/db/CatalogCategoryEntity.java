@@ -45,12 +45,6 @@ public class CatalogCategoryEntity {
     @Column(name = "max_publication_year")
     private Integer maxPublicationYear;
 
-    @Column(name = "min_rating")
-    private Double minRating;
-
-    @Column(name = "days_interval")
-    private Integer daysInterval;
-
     @ManyToMany
     @JoinTable(
             name = "category_tags",

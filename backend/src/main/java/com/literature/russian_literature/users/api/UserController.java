@@ -8,6 +8,7 @@ import com.literature.russian_literature.users.domain.dto.LoginRequest;
 import com.literature.russian_literature.users.domain.UserService;
 import com.literature.russian_literature.users.domain.dto.UserResponse;
 
+import com.literature.russian_literature.users.domain.dto.UserUpdateRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,9 +90,9 @@ public class UserController {
     @PutMapping("/{id}")
     public ResponseEntity<User> updateUser(
             @PathVariable("id") Long id,
-            @Valid @RequestBody User userToUpdate
+            @Valid @RequestBody UserUpdateRequest updateRequest
     ) {
-        User updated = userService.updateUser(id, userToUpdate);
+        User updated = userService.updateUser(id, updateRequest);
         LOG.info("Updated user id={}", updated.id());
         return ResponseEntity.ok(updated);
     }

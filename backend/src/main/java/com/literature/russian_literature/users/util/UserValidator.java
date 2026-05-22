@@ -2,6 +2,7 @@ package com.literature.russian_literature.users.util;
 
 import com.literature.russian_literature.users.db.UserRepository;
 import com.literature.russian_literature.users.domain.dto.User;
+import com.literature.russian_literature.users.domain.dto.UserUpdateRequest;
 import com.literature.russian_literature.util.GlobalValidator;
 
 import org.springframework.stereotype.Component;
@@ -24,14 +25,19 @@ public class UserValidator {
         validatePassword(user.password());
     }
 
-    public void validateForUpdate(Long id, User user) {
-        validateRequiredFields(user);
-        validateEmail(user.email());
-        validateUsernameUniquenessOnUpdate(id, user.username());
-        validateEmailUniquenessOnUpdate(id, user.email());
+    public void validateForUpdate(Long id, UserUpdateRequest userUpdate) {
+        if (userUpdate.username() != null) {
+            globalValidator.validateNotBlank(userUpdate.username(), "Username");
+            validateUsernameUniquenessOnUpdate(id, userUpdate.username());
+        }
+        if (userUpdate.email() != null) {
+            globalValidator.validateNotBlank(userUpdate.email(), "Email");
+            validateEmail(userUpdate.email());
+            validateEmailUniquenessOnUpdate(id, userUpdate.email());
+        }
 
-        if (user.password() != null) {
-            validatePassword(user.password());
+        if (userUpdate.password() != null && !userUpdate.password().isBlank()) {
+            validatePassword(userUpdate.password());
         }
     }
 

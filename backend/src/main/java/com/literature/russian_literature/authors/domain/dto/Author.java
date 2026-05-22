@@ -28,7 +28,8 @@ public record Author(
         @Size(min = 10, max = 2000, message = "Биография должна быть от 10 до 2000 символов")
         String biography,
 
-        String photoUrl
+        String photoUrl,
+        Integer bookCount
 ) {
 
 }

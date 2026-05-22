@@ -23,7 +23,6 @@ public class CatalogCategorySeeder {
                 newBooks.setIsActive(true);
                 newBooks.setBooksToShow(7);
                 newBooks.setCriteriaType("NEW");
-                newBooks.setDaysInterval(100);
                 newBooks.setCreatedAt(LocalDateTime.now());
                 newBooks.setUpdatedAt(LocalDateTime.now());
                 repository.save(newBooks);
@@ -35,7 +34,6 @@ public class CatalogCategorySeeder {
                 popular.setIsActive(true);
                 popular.setBooksToShow(7);
                 popular.setCriteriaType("POPULAR");
-                popular.setMinRating(4.0);
                 popular.setCreatedAt(LocalDateTime.now());
                 popular.setUpdatedAt(LocalDateTime.now());
                 repository.save(popular);

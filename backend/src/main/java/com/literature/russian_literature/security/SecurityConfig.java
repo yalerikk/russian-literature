@@ -40,7 +40,7 @@ public class SecurityConfig {
                         // ----- permitAll -----
                         .requestMatchers("/users/register", "/users/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/catalog/categories/active", "/api/catalog/categories/code/*",
-                                "/api/ratings/book/*/summary", "/genres", "/tags", "/tags/by-type", "/tags/by-type/**",
+                                "/api/ratings/book/*/summary", "/books/{id}/files", "/genres", "/tags", "/tags/by-type", "/tags/by-type/**",
                                 "/authors/**").permitAll()
                         // ----- authenticated -----
                         .requestMatchers("/api/ratings/**", "/users/me/**", "/books/*/read", "/books/*/download").authenticated()

@@ -46,6 +46,12 @@ public interface BookRepository extends JpaRepository<BookEntity, Long>, JpaSpec
             "LIMIT :limit", nativeQuery = true)
     List<Long> findTopBooksRatingIds(@Param("limit") int limit);
 
+    @Query(value = "SELECT id FROM books WHERE created_at >= :startDate ORDER BY created_at DESC LIMIT :limit", nativeQuery = true)
+    List<Long> findRecentBooksIds(@Param("startDate") LocalDateTime startDate, @Param("limit") int limit);
+
+    @Query(value = "SELECT * FROM books WHERE id IN (:ids) ORDER BY array_position(:ids, id)", nativeQuery = true)
+    List<BookEntity> findAllByIdInOrder(@Param("ids") List<Long> ids);
+
     @Query("SELECT COUNT(b) > 0 FROM BookEntity b WHERE b.title = :title AND b.author.id = :authorId")
     boolean existsByTitleAndAuthorId(@Param("title") String title, @Param("authorId") Long authorId);
 
@@ -55,9 +61,7 @@ public interface BookRepository extends JpaRepository<BookEntity, Long>, JpaSpec
                                                 @Param("excludeId") Long excludeId);
 
     boolean existsByAuthorId(Long authorId);
-
     boolean existsByGenres_Id(Long genreId);
-
     boolean existsByTags_Id(Long tagId);
 
     @Modifying

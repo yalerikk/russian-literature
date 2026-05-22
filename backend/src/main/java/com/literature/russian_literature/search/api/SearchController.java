@@ -46,7 +46,7 @@ public class SearchController {
     ) {
         Pageable pageable = PageRequest.of(page, size);
         Page<BookEntity> bookPage = bookService.filterBooks(
-                null, null, null, null, null, null, query, null, pageable
+                null, null, null, null, null, query, null, pageable
         );
         Long userId = SecurityUtils.getCurrentUserId();
         return ResponseEntity.ok(bookPage.map(book -> bookForCatalogMapper.toDto(book, userId)));
