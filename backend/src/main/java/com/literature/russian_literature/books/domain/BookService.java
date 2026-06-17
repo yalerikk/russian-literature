@@ -20,6 +20,7 @@ import com.literature.russian_literature.tags.domain.TagType;
 import com.literature.russian_literature.userbooks.db.UserBookRepository;
 
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -378,8 +379,14 @@ public class BookService {
                 if (category.tagIds() == null || category.tagIds().isEmpty()) {
                     return cb.conjunction();
                 }
-                var tagsJoin = root.join("tags");
-                return tagsJoin.get("id").in(category.tagIds());
+                query.distinct(true);
+                Predicate[] predicates = category.tagIds().stream()
+                        .map(tagId -> {
+                            var tagsJoin = root.join("tags");
+                            return cb.equal(tagsJoin.get("id"), tagId);
+                        })
+                        .toArray(Predicate[]::new);
+                return cb.and(predicates);
             };
             default -> (root, query, cb) -> cb.conjunction();
         };

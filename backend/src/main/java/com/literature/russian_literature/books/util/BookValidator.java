@@ -132,13 +132,8 @@ public class BookValidator {
             throw new IllegalArgumentException("Book must have a category tag (Russian or Foreign literature)");
         }
 
-        if (hasReadingType) {
-            long readingTypeCount = tags.stream()
-                    .filter(tag -> tag.getType() == TagType.READING_TYPE)
-                    .count();
-            if (readingTypeCount > 1) {
-                throw new IllegalArgumentException("Book can have only one reading type tag");
-            }
+        if (!hasReadingType) {
+            throw new IllegalArgumentException("Book must have a reading type tag (Main, Summer, or Additional)");
         }
 
         long gradeCount = tags.stream()
@@ -160,6 +155,13 @@ public class BookValidator {
                 .count();
         if (categoryCount > 1) {
             throw new IllegalArgumentException("Book can belong to only one category");
+        }
+
+        long readingTypeCount = tags.stream()
+                .filter(tag -> tag.getType() == TagType.READING_TYPE)
+                .count();
+        if (readingTypeCount > 1) {
+            throw new IllegalArgumentException("Book can have only one reading type tag");
         }
     }
 }

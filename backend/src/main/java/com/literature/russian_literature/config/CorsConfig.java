@@ -23,7 +23,7 @@ public class CorsConfig {
         ));
 
         // ВАЖНО: Разрешаем OPTIONS метод для preflight запросов
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
         // Разрешаемые заголовки
         config.setAllowedHeaders(List.of(

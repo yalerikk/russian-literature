@@ -5,8 +5,8 @@ import com.literature.russian_literature.books.db.BookRepository;
 import com.literature.russian_literature.catalog.domain.dto.BookForCatalogDto;
 import com.literature.russian_literature.catalog.db.BookForCatalogMapper;
 import com.literature.russian_literature.catalog.domain.dto.CatalogCategory;
-import com.literature.russian_literature.ratings.domain.BookRatingService;
 
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -14,8 +14,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -76,14 +76,20 @@ public class BookSelectionService {
     }
 
     private Specification<BookEntity> buildSpecificationFromCustomCategory(CatalogCategory category) {
-        Specification<BookEntity> spec = (root, query, cb) -> cb.conjunction();
-        if (category.tagIds() != null && !category.tagIds().isEmpty()) {
-            spec = spec.and((root, query, cb) -> {
-                var tagsJoin = root.join("tags");
-                return tagsJoin.get("id").in(category.tagIds());
-            });
+        Set<Long> tagIds = category.tagIds();
+        if (tagIds == null || tagIds.isEmpty()) {
+            return (root, query, cb) -> cb.conjunction();
         }
-        return spec;
+        return (root, query, cb) -> {
+            query.distinct(true);
+            Predicate[] predicates = tagIds.stream()
+                    .map(tagId -> {
+                        var tagsJoin = root.join("tags");
+                        return cb.equal(tagsJoin.get("id"), tagId);
+                    })
+                    .toArray(Predicate[]::new);
+            return cb.and(predicates);
+        };
     }
 
     // PAGE

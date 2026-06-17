@@ -77,8 +77,8 @@ public class AuthorValidator {
         if (birthDate == null) {
             throw new IllegalArgumentException("Birth date is required");
         }
-        if (birthDate.isAfter(LocalDate.now())) {
-            throw new IllegalArgumentException("Birth date cannot be in the future");
+        if (birthDate.isAfter(LocalDate.now()) || birthDate.isEqual(LocalDate.now())) {
+            throw new IllegalArgumentException("Birth date must be in the past (not today or future)");
         }
         if (deathDate != null) {
             if (deathDate.isBefore(birthDate)) {
