@@ -117,6 +117,9 @@ defineEmits(['page-change'])
   font-size: 16px;
   text-align: center;
   justify-content: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 /* Специальный стиль для ячейки действий в строках */
 .row-cell.actions-cell {

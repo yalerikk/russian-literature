@@ -29,30 +29,6 @@ export function useAdminCrud(fetchUrl, apiBaseUrl, pageSize = 10) {
     loadItems();
   }
 
-  // Поддержка разных эндпоинтов – удаляем /admin/list, если есть
-  async function deleteItem(id, confirmMessage) {
-    if (!confirm(confirmMessage)) return false;
-    const baseUrl = apiBaseUrl || fetchUrl.replace('/admin/list', '');
-    try {
-      await apiClient.delete(`${baseUrl}/${id}`);
-      await loadItems();
-      return true;
-    } catch (err) {
-      const msg = err.data?.details || err.message || "Ошибка";
-      alert(msg);
-      return false;
-    }
-  }
-
-  async function saveItem(payload, isEdit, id) {
-    const baseUrl = apiBaseUrl || fetchUrl.replace("/admin/list", "");
-    if (isEdit) {
-      return apiClient.put(`${baseUrl}/${id}`, payload);
-    } else {
-      return apiClient.post(baseUrl, payload);
-    }
-  }
-
   return {
     items,
     loading,
@@ -61,7 +37,5 @@ export function useAdminCrud(fetchUrl, apiBaseUrl, pageSize = 10) {
     error,
     loadItems,
     onPageChange,
-    deleteItem,
-    saveItem,
   };
 }

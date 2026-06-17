@@ -50,6 +50,7 @@
 <script setup>
 import { ref } from 'vue'
 import { authService } from '../services/authService'
+import { formatErrorMessage } from '../utils/errorFormatter'
 
 const emit = defineEmits(['success', 'switch-to-register'])
 const login = ref('')
@@ -75,9 +76,12 @@ async function handleSubmit() {
     await authService.login(login.value, password.value)
     emit('success')
   } catch (err) {
-    const msg = err.response?.data?.message || 'Неверный логин или пароль'
-    if (msg.toLowerCase().includes('пароль')) passwordError.value = msg
-    else loginError.value = msg
+    const msg = formatErrorMessage(err, 'auth')
+    if (msg.includes('пароль') || msg.includes('Пароль')) {
+      passwordError.value = msg
+    } else {
+      loginError.value = msg
+    }
   } finally {
     loading.value = false
   }

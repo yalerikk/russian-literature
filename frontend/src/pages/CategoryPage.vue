@@ -5,7 +5,8 @@
       <h1 class="category-title">{{ categoryName }}</h1>
       <FilterableBookList 
         v-if="currentCategory"
-        :fixed-params="{ categoryCode }" 
+        :fetch-url="`/api/catalog/category/${categoryCode}/books/filter`"
+        :fixed-tags="categoryTags"
         @book-click="goToBook"
       />
     </div>
@@ -24,12 +25,26 @@ const router = useRouter()
 const categoryCode = route.params.code
 const categoryName = ref('')
 const currentCategory = ref(null)
+const categoryTags = ref([])
 
 onMounted(async () => {
   try {
     const data = await apiClient.get(`/api/catalog/categories/code/${categoryCode}`)
+    console.log('CategoryPage: полный ответ категории', JSON.stringify(data, null, 2))
     currentCategory.value = data
     categoryName.value = data.name
+    const TAG_TYPE_MAP = {
+      1: 'GRADE', 2: 'GRADE',
+      3: 'LEVEL', 4: 'LEVEL',
+      5: 'CATEGORY', 6: 'CATEGORY',
+      7: 'READING_TYPE', 8: 'READING_TYPE', 9: 'READING_TYPE'
+    };
+    categoryTags.value = (data.tagIds || []).map(id => ({
+      id: id,
+      type: TAG_TYPE_MAP[id],
+      name: null // имя не нужно, BooksFilter будет искать по id
+    }));
+    console.log('CategoryPage: fixedTags после преобразования', categoryTags.value)
   } catch (err) {
     console.error(err)
     categoryName.value = 'Категория'

@@ -7,11 +7,11 @@
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label>Логин *</label>
+          <label>Логин</label>
           <input v-model="form.username" type="text" class="modal-input" />
         </div>
         <div class="form-group">
-          <label>Email *</label>
+          <label>Email</label>
           <input v-model="form.email" type="email" class="modal-input" />
         </div>
         <div class="form-group">
@@ -38,6 +38,7 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { apiClient } from '../../services/api'
+import { formatErrorMessage } from '../../utils/errorFormatter'
 
 const emit = defineEmits(['saved'])
 const visible = ref(false)
@@ -81,9 +82,44 @@ function close() {
 }
 
 async function save() {
-  if (!form.username.trim() || !form.email.trim()) {
-    errorMessage.value = 'Логин и email обязательны'
-    return
+  if (!form.username.trim()) { errorMessage.value = 'Логин обязателен'; return }
+  if (form.username.length < 2 || form.username.length > 50) { 
+    errorMessage.value = 'Логин от 2 до 50 символов'; 
+    return 
+  }
+  if (!/^[a-zA-Z0-9_]+$/.test(form.username)) { 
+    errorMessage.value = 'Только латиница, цифры и подчёркивание'; 
+    return 
+  }
+  if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) { 
+    errorMessage.value = 'Некорректный email'; 
+    return 
+  }
+  if (!isEdit.value && !form.password) { 
+    errorMessage.value = 'Пароль обязателен для нового пользователя'; 
+    return 
+  }
+  if (form.password) {
+    if (form.password.length < 6) { 
+      errorMessage.value = 'Пароль не менее 6 символов'; 
+      return 
+    }
+    if (/[а-яА-ЯёЁ]/.test(form.password)) { 
+      errorMessage.value = 'Пароль не должен содержать кириллицу';
+      return 
+    }
+    if (!/[A-Z]/.test(form.password)) { 
+      errorMessage.value = 'Нужна заглавная буква'; 
+      return 
+    }
+    if (!/[a-z]/.test(form.password)) { 
+      errorMessage.value = 'Нужна строчная буква'; 
+      return 
+    }
+    if (!/\d/.test(form.password)) { 
+      errorMessage.value = 'Нужна цифра'; 
+      return 
+    }
   }
   saving.value = true
   try {
@@ -92,13 +128,6 @@ async function save() {
       email: form.email,
       role: form.role
     }
-    if (form.password && form.password.trim()) {
-      payload.password = form.password
-    } else if (!isEdit.value) {
-      errorMessage.value = 'Пароль обязателен для нового пользователя'
-      saving.value = false
-      return
-    }
     if (isEdit.value) {
       await apiClient.put(`/users/${editingId.value}`, payload)
     } else {
@@ -106,8 +135,10 @@ async function save() {
     }
     emit('saved')
     close()
+    alert(isEdit.value ? 'Пользователь успешно обновлен' : 'Пользователь успешно добавлен')
   } catch (err) {
-    errorMessage.value = err.message || 'Ошибка сохранения'
+    errorMessage.value = formatErrorMessage(err, 'user')
+    console.error('User save error:', err)
   } finally {
     saving.value = false
   }

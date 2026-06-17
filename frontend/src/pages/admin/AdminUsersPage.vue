@@ -53,6 +53,8 @@ import { useAdminCrud } from '../../composables/useAdminCrud'
 import AdminTable from '../../components/admin/AdminTable.vue'
 import UserModal from '../../components/admin/UserModal.vue'
 import ConfirmModal from '../../components/ConfirmModal.vue'
+import { apiClient } from '../../services/api'
+import { formatErrorMessage } from '../../utils/errorFormatter'
 
 const columns = [
   { key: 'username', label: 'Логин' },
@@ -67,9 +69,8 @@ const {
   currentPage,
   totalPages,
   loadItems,
-  onPageChange,
-  deleteItem
-} = useAdminCrud('/users/admin/list', 10)
+  onPageChange
+} = useAdminCrud('/users/admin/list', '/users',10)
 
 const userModal = ref(null)
 const confirmModal = ref(null)
@@ -82,9 +83,11 @@ async function confirmDelete(user) {
   const confirmed = await confirmModal.value.open(`Удалить пользователя «${user.username}»?`)
   if (!confirmed) return
   try {
-    await deleteItem(user.id, '')
+    await apiClient.delete(`/users/${user.id}`)
+    alert('Пользователь успешно удален')
+    await loadItems()
   } catch (err) {
-    const msg = err.data?.details || err.message || 'Ошибка удаления'
+    const msg = formatErrorMessage(err, 'user')
     alert(msg)
   }
 }

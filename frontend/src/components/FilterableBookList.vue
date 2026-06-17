@@ -2,7 +2,10 @@
   <div class="filterable-list">
     <div class="layout">
       <aside class="filters-sidebar">
-        <BooksFilter @update:filters="applyFilters" />
+        <BooksFilter 
+          @update:filters="applyFilters"
+          :fixed-tags="fixedTags"
+        />
       </aside>
 
       <div class="books-area">
@@ -36,10 +39,12 @@ import BooksFilter from './BooksFilter.vue'
 import BookCard from './BookCard.vue'
 import Pagination from './Pagination.vue'
 import { apiClient } from '../services/api'
+import { catalogService } from '../services/catalog'
 
 const props = defineProps({
   fetchUrl: { type: String, default: '/books/filter' },
-  fixedParams: { type: Object, default: () => ({}) }
+  fixedParams: { type: Object, default: () => ({}) },
+  fixedTags: { type: Array, default: () => [] }
 })
 
 const emit = defineEmits(['book-click'])
@@ -67,6 +72,11 @@ async function fetchBooks() {
     Object.entries(props.fixedParams).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') params.append(key, value)
     })
+    if (props.fixedTags.length) {
+      props.fixedTags.forEach(tag => params.append('tagIds', tag.id))
+    }
+    console.log('FilterableBookList: fixedTags', props.fixedTags)
+    
     // фильтры
     if (activeFilters.value.genreIds.length) {
       activeFilters.value.genreIds.forEach(id => params.append('genreIds', id))

@@ -50,7 +50,7 @@ const booksByStatus = ref({
 })
 
 const statuses = [
-  { code: 'WISHLIST', title: 'Хочу прочитать' },
+  { code: 'WISHLIST', title: 'Отложить' },
   { code: 'READING', title: 'Читаю' },
   { code: 'READ', title: 'Прочитано' }
 ]

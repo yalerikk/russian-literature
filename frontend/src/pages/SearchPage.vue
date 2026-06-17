@@ -37,6 +37,7 @@
       <div v-if="activeTab === 'books'" class="tab-content">
         <FilterableBookList 
           :fixed-params="{ searchQuery: query }"
+          @book-click="goToBook"
         />
       </div>
       <div v-else class="tab-content">
@@ -88,7 +89,11 @@ async function loadAuthors() {
 }
 
 const goToAuthor = (id) => {
-  router.push(`/authors/${id}`)
+  router.push({ path: `/authors/${id}`, query: { from: 'search' } })
+}
+
+const goToBook = (bookId) => {
+  router.push({ path: `/books/${bookId}`, query: { from: 'search' } })
 }
 
 watch([activeTab, () => query.value], ([newTab, newQuery]) => {

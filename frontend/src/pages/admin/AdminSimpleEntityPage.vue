@@ -57,6 +57,8 @@ import { useAdminCrud } from '../../composables/useAdminCrud'
 import AdminTable from '../../components/admin/AdminTable.vue'
 import SimpleEntityModal from '../../components/admin/SimpleEntityModal.vue'
 import ConfirmModal from '../../components/ConfirmModal.vue'
+import { apiClient } from '../../services/api'
+import { formatErrorMessage } from '../../utils/errorFormatter'
 
 const props = defineProps({
   fetchUrl: { type: String, required: true },
@@ -81,7 +83,16 @@ function openCreateModal() { modal.value.open() }
 function openEditModal(item) { modal.value.open(item) }
 async function confirmDelete(item) {
   if (!await confirmModal.value.open(`Удалить ${props.entityName.toLowerCase()} «${item.name}»?`)) return
-  await deleteItem(item.id, '')
+  try {
+    await apiClient.delete(`${props.apiBaseUrl}/${item.id}`)
+    alert('Успешно удалено')
+    await loadItems()
+  } catch (err) {
+    let context = 'default'
+    if (props.apiBaseUrl === '/genres') context = 'genre'
+    else if (props.apiBaseUrl === '/tags') context = 'tag'
+    alert(formatErrorMessage(err, context))
+  }
 }
 onMounted(loadItems)
 </script>

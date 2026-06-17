@@ -51,6 +51,7 @@
 <script setup>
 import { ref } from 'vue'
 import { authService } from '../services/authService'
+import { formatErrorMessage } from '../utils/errorFormatter'
 
 const emit = defineEmits(['success', 'switch-to-login'])
 const username = ref('')
@@ -84,10 +85,17 @@ async function handleSubmit() {
     await authService.register(username.value, email.value, password.value)
     emit('success')
   } catch (err) {
-    const msg = err.message || 'Ошибка';
-    if (msg.toLowerCase().includes('username')) usernameError.value = msg;
-    else if (msg.toLowerCase().includes('email')) emailError.value = msg;
-    else passwordError.value = msg;
+    const msg = formatErrorMessage(err, 'auth')
+    // Распределяем по полям
+    if (msg.includes('логин') || msg.includes('username')) {
+      usernameError.value = msg
+    } else if (msg.includes('email')) {
+      emailError.value = msg
+    } else if (msg.includes('пароль') || msg.includes('цифр') || msg.includes('букв')) {
+      passwordError.value = msg
+    } else {
+      passwordError.value = msg
+    }
   } finally {
     loading.value = false
   }

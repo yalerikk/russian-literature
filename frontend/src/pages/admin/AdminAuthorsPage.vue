@@ -55,6 +55,8 @@ import { useAdminCrud } from '../../composables/useAdminCrud'
 import AdminTable from '../../components/admin/AdminTable.vue'
 import AuthorModal from '../../components/admin/AuthorModal.vue'
 import ConfirmModal from '../../components/ConfirmModal.vue'
+import { apiClient } from '../../services/api'
+import { formatErrorMessage } from '../../utils/errorFormatter'
 
 const columns = [
   { key: 'fullName', label: 'ФИО' },
@@ -70,7 +72,7 @@ const {
   loadItems,
   onPageChange,
   deleteItem
-} = useAdminCrud('/authors/admin/list', 10)
+} = useAdminCrud('/authors/admin/list', '/authors', 10)
 
 const authorModal = ref(null)
 const confirmModal = ref(null)
@@ -84,12 +86,19 @@ function openEditModal(author) {
 }
 
 async function confirmDelete(author) {
+  if (author.bookCount > 0) {
+    alert('Невозможно удалить автора, у которого есть книги. Сначала удалите или переназначьте книги.')
+    return
+  }
   const confirmed = await confirmModal.value.open(`Удалить автора «${formatFullName(author)}»?`)
   if (!confirmed) return
+
   try {
-    await deleteItem(author.id, '')
+    await apiClient.delete(`/authors/${author.id}`)
+    alert('Автор успешно удален')
+    await loadItems()
   } catch (err) {
-    const msg = err.data?.details || err.message || 'Ошибка удаления'
+    const msg = formatErrorMessage(err, 'book');
     alert(msg)
   }
 }

@@ -32,6 +32,7 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { apiClient } from '../../services/api'
+import { formatErrorMessage } from '../../utils/errorFormatter'
 
 const props = defineProps({
   entityName: { type: String, required: true },
@@ -74,6 +75,14 @@ async function save() {
     errorMessage.value = 'Название обязательно'
     return
   }
+  if (form.name.length > 50) { 
+    errorMessage.value = 'Название не должно превышать 50 символов'; 
+    return 
+  }
+  if (!/^[a-zA-Zа-яА-ЯёЁ0-9\s]+$/.test(form.name)) { 
+    errorMessage.value = 'Только буквы, цифры и пробелы'; 
+    return 
+  }
   saving.value = true
   try {
     const payload = { name: form.name }
@@ -85,8 +94,14 @@ async function save() {
     }
     emit('saved')
     close()
+    alert(`${isEdit.value ? 'Успешно обновлено' : 'Успешно добавлено'}: "${form.name}"`)
   } catch (err) {
-    errorMessage.value = err.data?.details || err.message || 'Ошибка сохранения'
+    let context = 'default'
+    if (props.apiBaseUrl === '/genres') context = 'genre'
+    else if (props.apiBaseUrl === '/tags') context = 'tag'
+
+    errorMessage.value = formatErrorMessage(err, context)
+    console.error('Save error:', err)
   } finally {
     saving.value = false
   }

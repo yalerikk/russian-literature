@@ -26,7 +26,7 @@
 
 <script setup>
 import { ref, computed, watch, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { apiClient } from '../services/api'
 
 const props = defineProps({
@@ -34,10 +34,12 @@ const props = defineProps({
   visible: { type: Boolean, default: false }
 })
 
+const route = useRoute()
 const router = useRouter()
 const suggestions = ref([])
 let debounceTimer = null
 let abortController = null
+const query = computed(() => route.query.q || '')
 
 const MAX_ITEMS = 10
 
@@ -63,8 +65,8 @@ async function fetchSuggestions(searchQuery) {
 }
 
 function goTo(item) {
-  if (item.type === 'BOOK') router.push(`/books/${item.id}`)
-  else if (item.type === 'AUTHOR') router.push(`/authors/${item.id}`)
+  if (item.type === 'BOOK') router.push({ path: `/books/${item.id}`, query: { from: 'search' } })
+  else if (item.type === 'AUTHOR') router.push({ path: `/authors/${item.id}`, query: { from: 'search' } })
 }
 
 watch(() => props.query, (newQuery) => {

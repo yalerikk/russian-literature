@@ -7,12 +7,12 @@
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label>Название *</label>
+          <label>Название</label>
           <input v-model="form.title" type="text" class="modal-input" />
         </div>
 
         <div class="form-group">
-          <label>Год издания *</label>
+          <label>Год издания</label>
           <input v-model.number="form.publicationYear" type="number" class="modal-input" />
         </div>
 
@@ -32,7 +32,7 @@
         </div>
 
         <div class="form-group">
-          <label>Жанры (можно несколько) *</label>
+          <label>Жанры (можно несколько)</label>
           <div class="multiselect">
             <div class="multiselect-tags">
               <span v-for="g in selectedGenres" :key="g.id" class="multiselect-tag">
@@ -116,6 +116,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { apiClient } from '../../services/api'
+import { formatErrorMessage } from '../../utils/errorFormatter'
 
 const emit = defineEmits(['saved'])
 const visible = ref(false)
@@ -325,6 +326,10 @@ function hasFile(format) {
 }
 
 async function uploadFile(format) {
+  if (format !== 'EPUB' && !hasFile('EPUB')) {
+    alert('Сначала загрузите файл в формате EPUB');
+    return;
+  }
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = format === 'PDF' ? '.pdf' : format === 'EPUB' ? '.epub' : format === 'FB2' ? '.fb2' : '.txt'
@@ -372,12 +377,20 @@ async function save() {
     errorMessage.value = 'Название обязательно'
     return
   }
+  if (form.title.length > 255) { 
+    errorMessage.value = 'Название не должно превышать 255 символов'; 
+    return 
+  }
   if (!form.publicationYear || form.publicationYear <= 0) {
     errorMessage.value = 'Год издания обязателен'
     return
   }
-  if (!form.description.trim()) {
-    errorMessage.value = 'Описание обязательно'
+  if (form.publicationYear < 1500 || form.publicationYear > new Date().getFullYear()) {
+    errorMessage.value = 'Некорректный год издания'
+    return
+  }
+  if (form.description && (form.description.length < 10 || form.description.length > 1000)) {
+    errorMessage.value = 'Описание должно быть от 10 до 1000 символов'
     return
   }
   if (!form.authorId) {
@@ -411,8 +424,10 @@ async function save() {
     hasUnsavedChanges = false
     emit('saved')
     close()
+    alert(isEdit.value ? 'Книга успешно обновлена' : 'Книга успешно добавлена')
   } catch (err) {
-    errorMessage.value = err.data?.details || err.message || 'Ошибка сохранения'
+    errorMessage.value = formatErrorMessage(err, 'book');
+    console.error('Book save error:', err)
   } finally {
     saving.value = false
   }

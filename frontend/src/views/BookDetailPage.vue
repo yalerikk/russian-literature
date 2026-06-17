@@ -29,6 +29,11 @@
           <span class="separator">/</span>
           <span class="breadcrumb-item current">{{ book.title }}</span>
         </template>
+        <template v-else-if="breadcrumbPath === 'search'">
+          <span class="breadcrumb-item">Поиск</span>
+          <span class="separator">/</span>
+          <span class="breadcrumb-item current">{{ book.title }}</span>
+        </template>
         <template v-else-if="breadcrumbPath === 'favorites'">
           <span class="breadcrumb-item">Избранное</span>
           <span class="separator">/</span>
@@ -150,7 +155,7 @@
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 4C14.787 4 17.263 5.257 19.026 6.813C19.911 7.594 20.64 8.471 21.154 9.344C21.659 10.201 22 11.13 22 12C22 12.87 21.66 13.799 21.154 14.656C20.64 15.529 19.911 16.406 19.026 17.187C17.263 18.743 14.786 20 12 20C9.213 20 6.737 18.743 4.974 17.187C4.089 16.406 3.36 15.529 2.846 14.656C2.34 13.799 2 12.87 2 12C2 11.13 2.34 10.201 2.846 9.344C3.36 8.471 4.089 7.594 4.974 6.813C6.737 5.257 9.214 4 12 4ZM12 6C9.816 6 7.792 6.993 6.298 8.312C5.554 8.968 4.966 9.685 4.569 10.359C4.163 11.049 4 11.62 4 12C4 12.38 4.163 12.951 4.569 13.641C4.966 14.315 5.554 15.031 6.298 15.688C7.792 17.007 9.816 18 12 18C14.184 18 16.208 17.007 17.702 15.688C18.446 15.031 19.034 14.315 19.431 13.641C19.837 12.951 20 12.38 20 12C20 11.62 19.837 11.049 19.431 10.359C19.034 9.685 18.446 8.969 17.702 8.312C16.208 6.993 14.184 6 12 6ZM12 9C12.088 9 12.175 9.00367 12.261 9.011C12.0439 9.39185 11.9579 9.8335 12.0163 10.268C12.0747 10.7025 12.2743 11.1057 12.5843 11.4157C12.8943 11.7257 13.2975 11.9253 13.732 11.9837C14.1665 12.0421 14.6081 11.9561 14.989 11.739C15.0416 12.3412 14.911 12.9452 14.6145 13.4719C14.3179 13.9986 13.8692 14.4234 13.327 14.6907C12.7849 14.958 12.1746 15.0553 11.5762 14.9699C10.9778 14.8844 10.4192 14.6202 9.97357 14.2118C9.52792 13.8034 9.21603 13.27 9.07876 12.6813C8.94149 12.0926 8.98524 11.4762 9.20429 10.9128C9.42334 10.3495 9.80746 9.8654 10.3063 9.52407C10.8052 9.18274 11.3955 9.00008 12 9Z" fill="#1B1B1B" />
               </svg>
-              В процессе
+              Читаю
             </button>
 
             <button class="action-btn" :class="{ active: currentStatus === 'READ' }" @click="updateCollection('READ')">
@@ -194,7 +199,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { apiClient } from '../services/api'
 import BooksSlider from '../components/BooksSlider.vue'
@@ -377,9 +382,9 @@ async function download(format) {
 async function readOnline() {
   if (!isAuthenticated.value) return openAuthModalWithConfirm();
 
-  const pdfFile = availableFiles.value.find(f => f.format === 'PDF');
-  if (!pdfFile) {
-    alert('PDF-версия книги недоступна для онлайн‑чтения');
+  const epubFile = availableFiles.value.find(f => f.format === 'EPUB');
+  if (!epubFile) {
+    alert('EPUB-версия книги недоступна для онлайн‑чтения');
     return;
   }
 
@@ -388,17 +393,7 @@ async function readOnline() {
     currentStatus.value = 'READING';
   }
 
-  try {
-    const res = await apiClient.get(`/books/${book.value.id}/download?format=PDF`);
-    const url = res?.url || res?.link || (typeof res === 'string' ? res : null);
-    if (url) {
-      window.open(url, '_blank');
-    } else {
-      alert('Не удалось получить ссылку для чтения');
-    }
-  } catch (err) {
-    alert('Не удалось открыть книгу для чтения');
-  }
+  router.push({ name: 'Reader', params: { id: book.value.id } });
 }
 
 function getStatusLabel(status) {
@@ -407,7 +402,20 @@ function getStatusLabel(status) {
 }
 
 const goToBook = (bookId) => {
-  router.push({ path: `/books/${bookId}`, query: { from: 'author' } })
+  console.log('[goToBook] bookId =', bookId, 'current book id =', book.value?.id)
+  if (bookId === book.value?.id) return
+  if (book.value?.author?.id) {
+    router.push({
+      path: `/books/${bookId}`,
+      query: {
+        from: 'author',
+        authorId: book.value.author.id,
+        authorName: book.value.author.shortName || book.value.author.name
+      }
+    })
+  } else {
+    router.push({ path: `/books/${bookId}` })
+  }
 }
 
 const goToAuthorPage = () => {
@@ -434,6 +442,17 @@ const handleImageError = (event) => { event.target.src = '/images/cover.png' }
 const openAuthModal = () => {
   showAuthModal.value = true
 }
+
+watch(() => route.params.id, async (newId, oldId) => {
+  if (newId !== oldId) {
+    loading.value = true
+    error.value = null
+    await loadBookData()
+    if (book.value) {
+      await loadFiles()
+    }
+  }
+})
 
 onMounted(async () => {
   await loadBookData()
@@ -521,13 +540,13 @@ onMounted(async () => {
   border-radius: 10px;
   overflow: hidden;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  aspect-ratio: 3/4;
 }
 
 .book-photo img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  aspect-ratio: 3/4;
 }
 
 .book-info-section {

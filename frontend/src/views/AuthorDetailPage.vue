@@ -3,9 +3,16 @@
     <div class="author-detail-content">
       <!-- Хлебные крошки -->
       <div class="breadcrumb-nav">
-        <router-link to="/authors" class="breadcrumb-item">Авторы</router-link>
-        <span class="separator">/</span>
-        <span class="breadcrumb-item current">{{ authorName || 'Автор' }}</span>
+        <template v-if="breadcrumbPath === 'authors'">
+          <router-link to="/authors" class="breadcrumb-item">Авторы</router-link>
+          <span class="separator">/</span>
+          <span class="breadcrumb-item current">{{ authorName || 'Автор' }}</span>
+        </template>
+        <template v-else-if="breadcrumbPath === 'search'">
+          <span class="breadcrumb-item">Поиск</span>
+          <span class="separator">/</span>
+          <span class="breadcrumb-item current">{{ authorName || 'Автор' }}</span>
+        </template>
       </div>
 
       <h1 class="author-main-title">{{ authorName }}</h1>
@@ -33,9 +40,12 @@
       </div>
 
       <!-- Книги автора -->
-      <div class="author-books-section">
+      <div class="author-books-section" v-if="authorBookCount > 0">
         <h2 class="section-title">Книги автора</h2>
         <FilterableBookList :fixed-params="{ authorId }" @book-click="goToBook" />
+      </div>
+      <div v-else-if="authorBookCount === 0" class="author-books-empty">
+        У автора пока нет книг.
       </div>
     </div>
   </div>
@@ -55,6 +65,8 @@ const authorBio = ref('')
 const authorPhoto = ref('')
 const birthDateRaw = ref(null)
 const deathDateRaw = ref(null)
+const authorBookCount = ref(0)
+const breadcrumbPath = computed(() => route.query.from || 'authors')
 
 const formatDateFull = (dateStr) => {
   if (!dateStr) return null
@@ -108,6 +120,7 @@ async function loadAuthor() {
     authorPhoto.value = data.photoUrl || ''
     birthDateRaw.value = data.birthDate || null
     deathDateRaw.value = data.deathDate || null
+    authorBookCount.value = data.bookCount || 0
   } catch (err) {
     console.error(err)
     authorName.value = 'Автор'

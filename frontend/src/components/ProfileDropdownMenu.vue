@@ -20,6 +20,7 @@
         <router-link to="/admin/genres" class="dropdown-item">Жанры</router-link>
         <router-link to="/admin/tags" class="dropdown-item">Теги</router-link>
         <router-link to="/admin/books" class="dropdown-item">Книги</router-link>
+        <router-link to="/admin/categories" class="dropdown-item">Подборки</router-link>
         <!-- позже добавятся: Книги, Категории -->
       </template>
 

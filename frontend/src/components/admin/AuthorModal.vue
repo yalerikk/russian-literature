@@ -7,11 +7,11 @@
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label>Фамилия *</label>
+          <label>Фамилия</label>
           <input v-model="form.lastName" type="text" class="modal-input" />
         </div>
         <div class="form-group">
-          <label>Имя *</label>
+          <label>Имя</label>
           <input v-model="form.firstName" type="text" class="modal-input" />
         </div>
         <div class="form-group">
@@ -52,7 +52,7 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { apiClient } from '../../services/api'
-import { authService } from '../../services/authService'
+import { formatErrorMessage } from '../../utils/errorFormatter'
 
 const emit = defineEmits(['saved'])
 const visible = ref(false)
@@ -133,23 +133,56 @@ async function onFileChange(e) {
 }
 
 async function save() {
-  if (!form.firstName.trim() || !form.lastName.trim()) {
-    errorMessage.value = 'Имя и фамилия обязательны'
+  // 1. Проверка обязательных полей
+  if (!form.firstName.trim()) { errorMessage.value = 'Имя обязательно'; return }
+  if (!form.lastName.trim()) { errorMessage.value = 'Фамилия обязательна'; return }
+  if (!form.middleName.trim()) { errorMessage.value = 'Отчество обязательно'; return }
+  if (!form.biography || form.biography.trim().length < 10) {
+    errorMessage.value = 'Биография должна быть не менее 10 символов'
     return
+  }
+  if (form.biography.length > 2000) {
+    errorMessage.value = 'Биография не должна превышать 2000 символов'
+    return
+  }
+  if (!form.birthDate) {
+    errorMessage.value = 'Дата рождения обязательна'
+    return
+  }
+  // 2. Логические проверки дат
+  const birth = new Date(form.birthDate)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // сравниваем только даты без времени
+  if (birth >= today) {
+    errorMessage.value = 'Дата рождения должна быть раньше сегодняшнего дня';
+    return;
+  }
+  if (form.deathDate) {
+    const death = new Date(form.deathDate)
+    if (death < birth) {
+      errorMessage.value = 'Дата смерти не может быть раньше даты рождения'
+      return
+    }
+    if (death > now) {
+      errorMessage.value = 'Дата смерти не может быть в будущем'
+      return
+    }
+    let age = death.getFullYear() - birth.getFullYear()
+    const monthDiff = death.getMonth() - birth.getMonth()
+    if (monthDiff < 0 || (monthDiff === 0 && death.getDate() < birth.getDate())) age--
+    if (age < 10) errorMessage.value = 'Возраст при смерти слишком мал (<10 лет)'
+    if (age > 150) errorMessage.value = 'Возраст при смерти слишком велик (>150 лет)'
+    if (age < 10 || age > 150) return
   }
   saving.value = true
   try {
-    if (form.biography.length < 10) {
-      errorMessage.value = 'Биография должна содержать не менее 10 символов'
-      return
-    }
     const payload = {
-      firstName: form.firstName,
-      lastName: form.lastName,
-      middleName: form.middleName || null,
+      firstName: form.firstName.trim(),
+      lastName: form.lastName.trim(),
+      middleName: form.middleName?.trim() || null,
       birthDate: form.birthDate || null,
       deathDate: form.deathDate || null,
-      biography: form.biography || null,
+      biography: form.biography?.trim() || null,
       photoUrl: form.photoUrl || oldPhotoUrl.value || null
     }
     if (isEdit.value) {
@@ -159,8 +192,10 @@ async function save() {
     }
     emit('saved')
     close()
+    alert(isEdit.value ? 'Автор успешно обновлен' : 'Автор успешно добавлен')
   } catch (err) {
-    errorMessage.value = err.message;
+    errorMessage.value = formatErrorMessage(err, 'author')
+    console.error('Author save error:', err)
   } finally {
     saving.value = false
   }

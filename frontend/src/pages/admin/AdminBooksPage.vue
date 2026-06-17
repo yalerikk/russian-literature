@@ -52,6 +52,8 @@ import { useAdminCrud } from '../../composables/useAdminCrud'
 import AdminTable from '../../components/admin/AdminTable.vue'
 import BookModal from '../../components/admin/BookModal.vue'
 import ConfirmModal from '../../components/ConfirmModal.vue'
+import { apiClient } from '../../services/api'
+import { formatErrorMessage } from '../../utils/errorFormatter'
 
 const columns = [
   { key: 'title', label: 'Название' },
@@ -71,9 +73,11 @@ async function confirmDelete(book) {
   const confirmed = await confirmModal.value.open(`Удалить книгу «${book.title}»?`)
   if (!confirmed) return
   try {
-    await deleteItem(book.id, '')
+    await apiClient.delete(`/books/${book.id}`)
+    alert('Книга успешно удалена')
+    await loadItems()
   } catch (err) {
-    const msg = err.data?.details || err.message || 'Ошибка удаления'
+    const msg = formatErrorMessage(err, 'book');
     alert(msg)
   }
 }

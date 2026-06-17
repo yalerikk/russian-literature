@@ -7,6 +7,7 @@ import AdminUsersPage from "../pages/admin/AdminUsersPage.vue";
 import AdminGenresPage from "../pages/admin/AdminGenresPage.vue";
 import AdminTagsPage from "../pages/admin/AdminTagsPage.vue";
 import AdminBooksPage from "../pages/admin/AdminBooksPage.vue";
+import AdminCategoriesPage from "../pages/admin/AdminCategoriesPage.vue";
 //
 import { authService } from "../services/authService";
 
@@ -109,6 +110,18 @@ const routes = [
     component: AdminBooksPage,
     meta: { requiresAuth: true, requiresAdmin: true },
   },
+  {
+    path: "/admin/categories",
+    name: "AdminCategories",
+    component: AdminCategoriesPage,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: "/reader/:id",
+    name: "Reader",
+    component: () => import("../pages/ReaderPage.vue"),
+    meta: { requiresAuth: true, hideLayout: true },
+  },
   // Добавьте другие маршруты позже
 ];
 
@@ -119,15 +132,19 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !authService.isAuthenticated.value) {
+    console.log("Router beforeEach:", to.path);
     next("/");
   } else if (to.meta.requiresAdmin) {
     const user = authService.getUserFromToken();
     if (user?.role !== "ROLE_ADMIN") {
+      console.log("Router beforeEach:", to.path);
       next("/");
     } else {
+      console.log("Router beforeEach:", to.path);
       next();
     }
   } else {
+    console.log("Router beforeEach:", to.path);
     next();
   }
 });
